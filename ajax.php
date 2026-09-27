@@ -65,6 +65,10 @@ if($action == 'list_reportsadmin'){
     echo $crud->list_reportsadmin();
 }
 
+if($action == 'report_counts'){
+    echo $crud->report_counts();
+}
+
 
 if($action == 'save_user'){
 	$save = $crud->save_user();

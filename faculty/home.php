@@ -357,30 +357,6 @@ body{
 }
 
 /* ===========================
-   QUICK ACTIONS
-=========================== */
-
-.quick-btn{
-    height:55px;
-
-    font-weight:600;
-
-    border-radius:12px;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:9px;
-
-    transition:.25s ease;
-}
-
-.quick-btn:hover{
-    transform:translateY(-2px);
-    box-shadow:0 7px 18px rgba(25,135,84,.15);
-}
-
-/* ===========================
    RESPONSIVE
 =========================== */
 
@@ -492,7 +468,7 @@ Needs Revision
 
 <div class="row">
 
-<div class="col-md-8">
+<div class="col-md-12">
 
 <div class="card dashboard-card">
 
@@ -539,42 +515,6 @@ What you can do
 <li>Receive feedback from the Extension Office.</li>
 
 </ul>
-
-</div>
-
-</div>
-
-</div>
-
-<div class="col-md-4">
-
-<div class="card dashboard-card">
-
-<div class="card-header bg-success text-white">
-
-Quick Actions
-
-</div>
-
-<div class="card-body">
-
-<a href="index.php?page=result" class="btn btn-success btn-block quick-btn">
-
-<i class="fa fa-upload"></i>
-
-Upload Report
-
-</a>
-
-<br>
-
-<a href="index.php?page=result" class="btn btn-outline-success btn-block quick-btn">
-
-<i class="fa fa-folder-open"></i>
-
-View My Reports
-
-</a>
 
 </div>
 

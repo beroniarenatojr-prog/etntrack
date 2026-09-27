@@ -531,20 +531,152 @@ function reject_reportadmin(){
     return $save ? 1 : 0;
 }
 
-function list_reportsadmin(){ 
- 
-    $output = ""; 
-    $i = 1; 
- 
-    $q = $this->db->query(" 
-        SELECT r.*, CONCAT(f.firstname,' ',f.lastname) AS uploader 
-        FROM uploaded_reports r 
-        LEFT JOIN faculty_list f 
-            ON r.uploaded_by = f.id 
-        ORDER BY r.uploaded_at DESC 
-    "); 
- 
-    while($r = $q->fetch_assoc()){ 
+/*
+|--------------------------------------------------------------------------
+| REPORT FILTERS
+| Builds the WHERE conditions shared by the admin and coordinator report
+| lists from the report type tab, status tab, search box and dropdowns.
+|--------------------------------------------------------------------------
+*/
+private function report_filters($src, $prefix = '', $with_type = true){
+
+    $report_type = isset($src['report_type']) && $src['report_type'] == 'Progress Report'
+        ? 'Progress Report'
+        : 'Terminal Report';
+
+    $where = $with_type ? array("{$prefix}report_type = '$report_type'") : array();
+    $filtered = false;
+    $status = '';
+
+    if(!empty($src['search'])){
+        $search = $this->db->real_escape_string(trim($src['search']));
+        $where[] = "({$prefix}report_title LIKE '%$search%' OR {$prefix}file_name LIKE '%$search%')";
+        $filtered = true;
+    }
+
+    if(!empty($src['status']) && in_array($src['status'], array('Pending','Approved','Rejected'))){
+        $status = $src['status'];
+        $where[] = "{$prefix}status = '$status'";
+    }
+
+    if(!empty($src['category']) && in_array($src['category'], array('Research','Extension','Training'))){
+        $where[] = "{$prefix}Category = '{$src['category']}'";
+        $filtered = true;
+    }
+
+    if(!empty($src['coordinator'])){
+        $where[] = "{$prefix}uploaded_by = ".(int)$src['coordinator'];
+        $filtered = true;
+    }
+
+    // e.g. "pending terminal reports"
+    $label = strtolower(trim($status.' '.$report_type)).'s';
+
+    if($filtered){
+        $empty = "No $label match your filters.";
+    }elseif($status){
+        $empty = "No $label.";
+    }else{
+        $empty = "No $label uploaded yet.";
+    }
+
+    return array(
+        'where' => $where ? implode(' AND ', $where) : '1',
+        'empty' => '<tr><td colspan="7" class="text-center text-muted py-4">'.$empty.'</td></tr>'
+    );
+}
+
+/*
+|--------------------------------------------------------------------------
+| REPORT COUNTS
+| Numbers for the report type and status tab badges (following the same
+| search/category/coordinator filters as the list) and the overall totals.
+| Coordinators only count their own reports.
+|--------------------------------------------------------------------------
+*/
+function report_counts(){
+
+    $src = $_POST;
+    unset($src['status']);
+
+    $scope = "1";
+
+    if($_SESSION['login_type'] != 1){
+        unset($src['coordinator']);
+        $scope = "uploaded_by = ".(int)$_SESSION['login_id'];
+    }
+
+    $filters = $this->report_filters($src, '', false);
+
+    $empty = array('Total' => 0, 'Pending' => 0, 'Approved' => 0, 'Rejected' => 0);
+
+    $types = array(
+        'Terminal Report' => $empty,
+        'Progress Report' => $empty
+    );
+
+    $q = $this->db->query("
+        SELECT report_type, status, COUNT(*) AS total
+        FROM uploaded_reports
+        WHERE $scope AND {$filters['where']}
+        GROUP BY report_type, status
+    ");
+
+    while($r = $q->fetch_assoc()){
+
+        $status = ucfirst(strtolower($r['status']));
+
+        $types[$r['report_type']]['Total'] += $r['total'];
+
+        if(isset($types[$r['report_type']][$status])){
+            $types[$r['report_type']][$status] += $r['total'];
+        }
+    }
+
+    $overall = $empty;
+
+    $q = $this->db->query("
+        SELECT status, COUNT(*) AS total
+        FROM uploaded_reports
+        WHERE $scope
+        GROUP BY status
+    ");
+
+    while($r = $q->fetch_assoc()){
+
+        $status = ucfirst(strtolower($r['status']));
+
+        $overall['Total'] += $r['total'];
+
+        if(isset($overall[$status])){
+            $overall[$status] += $r['total'];
+        }
+    }
+
+    return json_encode(array('types' => $types, 'overall' => $overall));
+}
+
+function list_reportsadmin(){
+
+    $filters = $this->report_filters($_POST, 'r.');
+
+    $output = "";
+    $i = 1;
+
+    $q = $this->db->query("
+        SELECT r.*, CONCAT(f.firstname,' ',f.lastname) AS uploader
+        FROM uploaded_reports r
+        LEFT JOIN faculty_list f
+            ON r.uploaded_by = f.id
+        WHERE {$filters['where']}
+        ORDER BY r.uploaded_at DESC
+    ");
+
+    if($q->num_rows == 0){
+        return $filters['empty'];
+    }
+
+    while($r = $q->fetch_assoc()){
  
         if($r['status'] == "Approved"){ 
             $status = "<span class='badge badge-success'>Approved</span>"; 
@@ -560,7 +692,7 @@ function list_reportsadmin(){
         <tr> 
             <td>'.$i++.'</td> 
  
-            <td>'.$r['report_title'].'</td> 
+            <td>'.$r['report_title'].'</td>
  
             <td>'.$r['file_name'].'</td> 
  
@@ -579,8 +711,8 @@ function list_reportsadmin(){
                 </a>'; 
  
         /* =========================================
-           PENDING
-           Can Approve or Reject
+           PENDING  -> Approve or Reject
+           REJECTED -> can still be Approved
         ========================================= */ 
  
         if($r['status'] != "Approved"){ 
@@ -592,7 +724,7 @@ function list_reportsadmin(){
                 </button>'; 
         } 
  
-        if($r['status'] != "Approved"){ 
+        if($r['status'] == "Pending"){ 
  
             $output .= ' 
                 <button class="btn btn-danger btn-sm reject-report" 
@@ -1668,6 +1800,10 @@ function delete_activity(){
         return "No file uploaded.";
     }
 
+    if(!isset($report_type) || !in_array($report_type, array('Terminal Report','Progress Report'))){
+        return "Invalid report type.";
+    }
+
     $uploaded_by = $_SESSION['login_id'];
 
     $file = $_FILES['report'];
@@ -1681,9 +1817,9 @@ function delete_activity(){
 
         $save = $this->db->query("
             INSERT INTO uploaded_reports
-            (report_title, file_name, uploaded_by, Category)
+            (report_title, report_type, file_name, uploaded_by, Category)
             VALUES
-            ('$title', '$filename', '$uploaded_by', '$category')
+            ('$title', '$report_type', '$filename', '$uploaded_by', '$category')
         ");
 
         if($save){
@@ -1715,6 +1851,22 @@ function list_reports(){
 
     $uploaded_by = $_SESSION['login_id'];
 
+    // Coordinators only ever see their own reports
+    $src = $_GET;
+    unset($src['coordinator']);
+
+    $filters = $this->report_filters($src);
+
+    $sort = array(
+        'newest' => 'uploaded_at DESC',
+        'oldest' => 'uploaded_at ASC',
+        'title'  => 'report_title ASC'
+    );
+
+    $order = isset($_GET['sort']) && isset($sort[$_GET['sort']])
+        ? $sort[$_GET['sort']]
+        : $sort['newest'];
+
     $output = "";
     $i = 1;
 
@@ -1722,8 +1874,13 @@ function list_reports(){
         SELECT *
         FROM uploaded_reports
         WHERE uploaded_by = '$uploaded_by'
-        ORDER BY uploaded_at DESC
+        AND {$filters['where']}
+        ORDER BY $order
     ");
+
+    if($q->num_rows == 0){
+        return $filters['empty'];
+    }
 
     while($r = $q->fetch_assoc()){
 

@@ -8,7 +8,13 @@ $pending = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE st
  
 $approved = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE status='approved'")->fetch_assoc()['total']; 
  
-$rejected = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE status='rejected'")->fetch_assoc()['total']; 
+$rejected = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE status='rejected'")->fetch_assoc()['total'];
+
+$terminal_total = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE report_type='Terminal Report'")->fetch_assoc()['total'];
+
+$progress_total = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE report_type='Progress Report'")->fetch_assoc()['total'];
+
+$coordinators = $conn->query("SELECT id, CONCAT(firstname,' ',lastname) AS name FROM faculty_list ORDER BY firstname, lastname");
  
 ?> 
  
@@ -240,11 +246,130 @@ $rejected = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE s
         border-radius:10px !important; 
     } 
  
-    .paginate_button.current{ 
-        background:#16a34a !important; 
-        color:white !important; 
-        border:none !important; 
-    } 
+    .paginate_button.current{
+        background:#16a34a !important;
+        color:white !important;
+        border:none !important;
+    }
+
+    /* ===== Report Type Tabs ===== */
+
+    .report-tabs .nav-link{
+        background:#fff;
+        color:#28a745;
+        border:1px solid #d1fae5;
+        border-radius:12px;
+        padding:10px 22px;
+        margin-right:10px;
+        font-weight:600;
+        transition:.25s;
+    }
+
+    .report-tabs .nav-link:hover{
+        background:#f0fdf4;
+    }
+
+    .report-tabs .nav-link.active{
+        background:#28a745;
+        border-color:#28a745;
+        color:#fff;
+    }
+
+    .report-tabs .tab-count{
+        display:inline-block;
+        min-width:24px;
+        margin-left:6px;
+        padding:2px 8px;
+        border-radius:20px;
+        background:#dcfce7;
+        color:#15803d;
+        font-size:12px;
+        text-align:center;
+    }
+
+    .report-tabs .nav-link.active .tab-count{
+        background:rgba(255,255,255,.25);
+        color:#fff;
+    }
+
+    /* ===== Filters ===== */
+
+    .report-filters{
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+    }
+
+    .report-filters .form-control{
+        height:42px;
+        border:1px solid #e5e7eb;
+        border-radius:12px;
+        box-shadow:none;
+    }
+
+    .report-filters .form-control:focus{
+        border-color:#22c55e;
+        box-shadow:0 0 0 .15rem rgba(34,197,94,.15);
+    }
+
+    .report-filters .filter-search{
+        flex:1 1 240px;
+        width:auto;
+    }
+
+    .report-filters .report-filter{
+        flex:0 1 190px;
+        width:auto;
+    }
+
+    /* ===== Status Tabs ===== */
+
+    .status-tabs{
+        border-bottom:2px solid #e5e7eb;
+    }
+
+    .status-tabs .nav-link{
+        color:#6b7280;
+        font-weight:600;
+        padding:10px 20px;
+        border-bottom:3px solid transparent;
+        margin-bottom:-2px;
+        transition:.2s;
+    }
+
+    .status-tabs .nav-link:hover{
+        color:#28a745;
+    }
+
+    .status-tabs .nav-link.active{
+        color:#28a745;
+        border-bottom-color:#28a745;
+    }
+
+    .status-count{
+        display:inline-block;
+        min-width:24px;
+        margin-left:4px;
+        padding:2px 8px;
+        border-radius:20px;
+        font-size:12px;
+        text-align:center;
+    }
+
+    #count-Pending{
+        background:#fef3c7;
+        color:#b45309;
+    }
+
+    #count-Approved{
+        background:#dcfce7;
+        color:#15803d;
+    }
+
+    #count-Rejected{
+        background:#fee2e2;
+        color:#dc2626;
+    }
  
 </style> 
  
@@ -274,7 +399,7 @@ $rejected = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE s
  
                         <div class="stat-content"> 
                             <h6>Total Reports</h6> 
-                            <h2><?php echo $total ?></h2> 
+                            <h2 id="stat-total"><?php echo $total ?></h2> 
                             <small>All submitted reports</small> 
                         </div> 
  
@@ -293,7 +418,7 @@ $rejected = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE s
  
                         <div class="stat-content"> 
                             <h6>Pending</h6> 
-                            <h2><?php echo $pending ?></h2> 
+                            <h2 id="stat-pending"><?php echo $pending ?></h2> 
                             <small>Waiting for approval</small> 
                         </div> 
  
@@ -312,7 +437,7 @@ $rejected = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE s
  
                         <div class="stat-content"> 
                             <h6>Approved</h6> 
-                            <h2><?php echo $approved ?></h2> 
+                            <h2 id="stat-approved"><?php echo $approved ?></h2> 
                             <small>Successfully approved</small> 
                         </div> 
  
@@ -331,7 +456,7 @@ $rejected = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE s
  
                         <div class="stat-content"> 
                             <h6>Rejected</h6> 
-                            <h2><?php echo $rejected ?></h2> 
+                            <h2 id="stat-rejected"><?php echo $rejected ?></h2> 
                             <small>Rejected reports</small> 
                         </div> 
  
@@ -344,15 +469,72 @@ $rejected = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE s
         </div> 
  
  
-        <div class="card-body"> 
- 
-            <table class="table table-bordered table-hover table-striped" id="reportTable"> 
+        <div class="card-body">
+
+            <ul class="nav report-tabs mb-4">
+                <li class="nav-item">
+                    <a href="#terminal" class="nav-link active" data-type="Terminal Report">
+                        <i class="fa fa-flag-checkered"></i> Terminal Report
+                        <span class="tab-count" id="count-terminal"><?php echo $terminal_total ?></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#progress" class="nav-link" data-type="Progress Report">
+                        <i class="fa fa-chart-line"></i> Progress Report
+                        <span class="tab-count" id="count-progress"><?php echo $progress_total ?></span>
+                    </a>
+                </li>
+            </ul>
+
+            <ul class="nav status-tabs mb-4">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" data-status="Pending">
+                        <i class="fas fa-hourglass-half"></i> For Approval
+                        <span class="status-count" id="count-Pending">0</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-status="Approved">
+                        <i class="fas fa-check-circle"></i> Approved
+                        <span class="status-count" id="count-Approved">0</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-status="Rejected">
+                        <i class="fas fa-times-circle"></i> Rejected
+                        <span class="status-count" id="count-Rejected">0</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="report-filters mb-3">
+
+                <input type="text" class="form-control filter-search" id="search-report"
+                       placeholder="Search title or file name...">
+
+                <select class="form-control report-filter" id="filter-coordinator">
+                    <option value="">All Coordinators</option>
+                    <?php while($c = $coordinators->fetch_assoc()): ?>
+                    <option value="<?php echo $c['id'] ?>"><?php echo htmlspecialchars($c['name']) ?></option>
+                    <?php endwhile; ?>
+                </select>
+
+                <select class="form-control report-filter" id="filter-category">
+                    <option value="">All Categories</option>
+                    <option>Research</option>
+                    <option>Extension</option>
+                    <option>Training</option>
+                </select>
+
+            </div>
+
+            <table class="table table-bordered table-hover table-striped" id="reportTable">
  
                 <thead class="thead-dark"> 
  
                     <tr> 
                         <th width="5%">#</th> 
-                        <th>Report Title</th> 
+                        <th>Report Title</th>
                         <th>File Name</th> 
                         <th>Uploaded By</th> 
                         <th> Uploaded at </th> 
@@ -375,28 +557,116 @@ $rejected = $conn->query("SELECT COUNT(*) AS total FROM uploaded_reports WHERE s
  
 <script> 
  
-$(document).ready(function(){ 
-    load_reports(); 
-}); 
- 
- 
-function load_reports(){ 
- 
-    $.ajax({ 
-        url: "ajax.php?action=list_reportsadmin", 
-        method: "POST", 
- 
-        success: function(resp){ 
-            $("#report-list").html(resp); 
-        }, 
- 
-        error: function(xhr, status, error){ 
-            console.log(xhr.responseText); 
-            alert("Failed to load reports."); 
-        } 
-    }); 
- 
-} 
+var currentReportType = "Terminal Report";
+var currentStatus = "Pending";
+
+$(document).ready(function(){
+
+    // Keep the selected tab after a page refresh
+    if(location.hash == "#progress"){
+        set_report_tab($('.report-tabs .nav-link[href="#progress"]'));
+    }
+
+    load_reports();
+
+    $(".report-tabs .nav-link").click(function(e){
+        e.preventDefault();
+        set_report_tab($(this));
+        history.replaceState(null, "", $(this).attr("href"));
+        load_reports();
+    });
+
+    $(".status-tabs .nav-link").click(function(e){
+        e.preventDefault();
+        $(".status-tabs .nav-link").removeClass("active");
+        $(this).addClass("active");
+        currentStatus = $(this).data("status");
+        load_reports();
+    });
+
+    var searchTimer;
+
+    $("#search-report").on("input", function(){
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(load_reports, 300);
+    });
+
+    $(".report-filter").change(load_reports);
+
+});
+
+
+function set_report_tab(tab){
+    $(".report-tabs .nav-link").removeClass("active");
+    tab.addClass("active");
+    currentReportType = tab.data("type");
+}
+
+
+function load_reports(){
+
+    $.ajax({
+        url: "ajax.php?action=list_reportsadmin",
+        method: "POST",
+        data: {
+            report_type: currentReportType,
+            search: $("#search-report").val(),
+            coordinator: $("#filter-coordinator").val(),
+            status: currentStatus,
+            category: $("#filter-category").val()
+        },
+
+        success: function(resp){
+            $("#report-list").html(resp);
+        },
+
+        error: function(xhr, status, error){
+            console.log(xhr.responseText);
+            alert("Failed to load reports.");
+        }
+    });
+
+    load_counts();
+
+}
+
+
+function load_counts(){
+
+    $.ajax({
+        url: "ajax.php?action=report_counts",
+        method: "POST",
+        dataType: "json",
+        data: {
+            search: $("#search-report").val(),
+            coordinator: $("#filter-coordinator").val(),
+            category: $("#filter-category").val()
+        },
+
+        success: function(resp){
+
+            var counts = resp.types[currentReportType];
+
+            $.each(["Pending", "Approved", "Rejected"], function(i, status){
+                $("#count-" + status).text(counts[status]);
+            });
+
+            $("#count-terminal").text(resp.types["Terminal Report"].Total);
+            $("#count-progress").text(resp.types["Progress Report"].Total);
+
+            $("#stat-total").text(resp.overall.Total);
+            $("#stat-pending").text(resp.overall.Pending);
+            $("#stat-approved").text(resp.overall.Approved);
+            $("#stat-rejected").text(resp.overall.Rejected);
+
+        },
+
+        error: function(xhr){
+            console.log(xhr.responseText);
+        }
+    });
+
+}
  
  
 /* ================================
@@ -479,8 +749,8 @@ $(document).on("click", ".delete-report", function(){
  
                     alert("Report successfully deleted."); 
  
-                    // Reload page so statistics update too
-                    location.reload(); 
+                    // Also refreshes the statistics and tab counts
+                    load_reports();
  
                 }else{ 
  

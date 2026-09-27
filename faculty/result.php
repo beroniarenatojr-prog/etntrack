@@ -361,6 +361,90 @@ font-size:15px;
     margin-bottom:10px;
 }
 
+.report-tabs .nav-link{
+    background:#fff;
+    color:#198754;
+    border-radius:12px;
+    padding:12px 24px;
+    margin-right:10px;
+    font-weight:600;
+    box-shadow:0 5px 15px rgba(0,0,0,.06);
+    transition:.3s;
+}
+
+.report-tabs .nav-link:hover{
+    background:#e9f8ef;
+}
+
+.report-tabs .nav-link.active{
+    background:linear-gradient(135deg,#198754,#157347);
+    color:#fff;
+}
+
+.report-filters{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+}
+
+.report-filters .filter-search{
+    flex:1 1 220px;
+    width:auto;
+}
+
+.report-filters .report-filter{
+    flex:0 1 160px;
+    width:auto;
+}
+
+.status-tabs{
+    border-bottom:2px solid #eef2ef;
+}
+
+.status-tabs .nav-link{
+    color:#6c757d;
+    font-weight:600;
+    padding:10px 18px;
+    border-bottom:3px solid transparent;
+    margin-bottom:-2px;
+    transition:.2s;
+}
+
+.status-tabs .nav-link:hover{
+    color:#198754;
+}
+
+.status-tabs .nav-link.active{
+    color:#198754;
+    border-bottom-color:#198754;
+}
+
+.status-count{
+    display:inline-block;
+    min-width:22px;
+    margin-left:4px;
+    padding:1px 7px;
+    border-radius:20px;
+    font-size:12px;
+    text-align:center;
+}
+
+#count-Pending{
+    background:#fff3cd;
+    color:#b45309;
+}
+
+#count-Approved{
+    background:#d1f7dd;
+    color:#198754;
+}
+
+#count-Rejected{
+    background:#fde2e2;
+    color:#dc3545;
+}
+
 @media(max-width:768px){
 
 .upload-body{
@@ -426,6 +510,19 @@ font-size:13px;
 
 </div>
 
+<ul class="nav report-tabs mb-4">
+    <li class="nav-item">
+        <a href="#" class="nav-link active" data-type="Terminal Report">
+            <i class="fa fa-flag-checkered"></i> Terminal Report
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="#" class="nav-link" data-type="Progress Report">
+            <i class="fa fa-chart-line"></i> Progress Report
+        </a>
+    </li>
+</ul>
+
 <div class="row">
 
 <div class="col-lg-5 col-xl-4">
@@ -436,7 +533,7 @@ font-size:13px;
 
 <h4>
 <i class="fa fa-cloud-upload-alt"></i>
-Upload Report
+Upload <span class="report-type-label">Terminal Report</span>
 </h4>
 
 </div>
@@ -448,6 +545,8 @@ Upload Report
 </div>
 
 <form id="upload-report" enctype="multipart/form-data">
+
+    <input type="hidden" name="report_type" id="report_type" value="Terminal Report">
 
     <div class="form-group text-left">
         <label><b>Report Title</b></label>
@@ -599,7 +698,7 @@ Upload Report
 
 <i class="fa fa-folder-open"></i>
 
-My Uploaded Reports
+My <span class="report-type-label">Terminal Report</span>s
 
 </h4>
 
@@ -607,9 +706,30 @@ My Uploaded Reports
 
 <div class="card-body table-responsive">
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<ul class="nav status-tabs mb-3">
+    <li class="nav-item">
+        <a href="#" class="nav-link active" data-status="Pending">
+            <i class="fa fa-clock"></i> Pending
+            <span class="status-count" id="count-Pending">0</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="#" class="nav-link" data-status="Approved">
+            <i class="fa fa-check-circle"></i> Approved
+            <span class="status-count" id="count-Approved">0</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="#" class="nav-link" data-status="Rejected">
+            <i class="fa fa-times-circle"></i> Rejected
+            <span class="status-count" id="count-Rejected">0</span>
+        </a>
+    </li>
+</ul>
 
-    <div class="input-group" style="max-width:300px">
+<div class="report-filters mb-3">
+
+    <div class="input-group filter-search">
         <div class="input-group-prepend">
             <span class="input-group-text bg-white">
                 <i class="fa fa-search text-success"></i>
@@ -619,13 +739,18 @@ My Uploaded Reports
                placeholder="Search reports...">
     </div>
 
-    <div>
-        <select class="form-control" id="sort-report">
-            <option value="newest">Sort by : Newest</option>
-            <option value="oldest">Oldest</option>
-            <option value="title">Title</option>
-        </select>
-    </div>
+    <select class="form-control report-filter" id="filter-category">
+        <option value="">All Categories</option>
+        <option>Research</option>
+        <option>Extension</option>
+        <option>Training</option>
+    </select>
+
+    <select class="form-control report-filter" id="sort-report">
+        <option value="newest">Sort by : Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="title">Title</option>
+    </select>
 
 </div>
 
@@ -740,6 +865,41 @@ $(document).ready(function () {
 
     load_reports();
 
+    $(".report-tabs .nav-link").click(function (e) {
+
+        e.preventDefault();
+
+        $(".report-tabs .nav-link").removeClass("active");
+        $(this).addClass("active");
+
+        var type = $(this).data("type");
+
+        $("#report_type").val(type);
+        $(".report-type-label").text(type);
+
+        load_reports();
+
+    });
+
+    $(".status-tabs .nav-link").click(function (e) {
+
+        e.preventDefault();
+
+        set_status_tab($(this).data("status"));
+
+        load_reports();
+
+    });
+
+    var searchTimer;
+
+    $("#search-report").on("input", function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(load_reports, 300);
+    });
+
+    $(".report-filter").change(load_reports);
+
     $("#upload-report").submit(function (e) {
 
         e.preventDefault();
@@ -777,6 +937,9 @@ $(document).ready(function () {
                     $("#upload-report")[0].reset();
                     $("#file-name").html("");
                     $("#selected-file").hide();
+
+                    // New uploads wait for admin approval
+                    set_status_tab("Pending");
 
                     load_reports();
 
@@ -896,15 +1059,69 @@ function delete_report(id){
 
 
 
+var currentStatus = "Pending";
+
+function set_status_tab(status) {
+
+    currentStatus = status;
+
+    $(".status-tabs .nav-link").removeClass("active");
+    $('.status-tabs .nav-link[data-status="' + status + '"]').addClass("active");
+
+}
+
 function load_reports() {
 
     $.ajax({
 
         url: "ajax.php?action=list_reports",
 
+        data: {
+            report_type: $("#report_type").val(),
+            search: $("#search-report").val(),
+            status: currentStatus,
+            category: $("#filter-category").val(),
+            sort: $("#sort-report").val()
+        },
+
         success: function (resp) {
 
             $("#report-list").html(resp);
+
+        },
+
+        error: function (xhr) {
+
+            console.log(xhr.responseText);
+
+        }
+
+    });
+
+    load_counts();
+
+}
+
+function load_counts() {
+
+    $.ajax({
+
+        url: "ajax.php?action=report_counts",
+        method: "POST",
+        dataType: "json",
+
+        data: {
+            search: $("#search-report").val(),
+            category: $("#filter-category").val()
+        },
+
+        success: function (resp) {
+
+            var counts = resp.types[$("#report_type").val()];
+
+            $.each(["Pending", "Approved", "Rejected"], function (i, status) {
+                $("#count-" + status).text(counts[status]);
+            });
 
         },
 

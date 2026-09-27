@@ -394,7 +394,7 @@
                             <?php if(!empty($row['image'])): ?>
 
                                 <a
-                                    href="assets/uploads/<?php
+                                    href="uploads/activities/<?php
                                         echo htmlspecialchars(
                                             $row['image'],
                                             ENT_QUOTES,

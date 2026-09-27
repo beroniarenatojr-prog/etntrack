@@ -313,6 +313,38 @@ if (isset($_SESSION['login_id'])) {
         box-shadow: 0 0 0 0.2rem rgba(29, 91, 66, 0.12);
     }
 
+    .password-wrapper {
+        position: relative;
+    }
+
+    .password-wrapper .form-control {
+        padding-right: 52px;
+    }
+
+    /* Hide Edge's built-in reveal button so only one eye shows */
+    .password-wrapper input::-ms-reveal {
+        display: none;
+    }
+
+    .toggle-password {
+        position: absolute;
+        top: 50%;
+        right: 14px;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        padding: 6px;
+        color: #7b8a9c;
+        cursor: pointer;
+        transition: color 0.25s ease;
+    }
+
+    .toggle-password:hover,
+    .toggle-password:focus {
+        color: #1d5b42;
+        outline: none;
+    }
+
     .btn-success {
         background: #1d5b42 !important;
         border: none !important;
@@ -463,13 +495,21 @@ if (isset($_SESSION['login_id'])) {
                             placeholder="Email Address"
                             required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group password-wrapper">
                         <input
                             type="password"
                             class="form-control form-control-lg"
                             name="password"
+                            id="password"
                             placeholder="Password"
                             required>
+                        <button
+                            type="button"
+                            class="toggle-password"
+                            id="toggle-password"
+                            aria-label="Show password">
+                            <i class="fas fa-eye"></i>
+                        </button>
                     </div>
                     <button type="submit" class="btn btn-success btn-lg btn-block">
                         <i class="fas fa-sign-in-alt"></i>
@@ -530,6 +570,24 @@ document.addEventListener('DOMContentLoaded', function () {
             }, 100);
 
         });
+
+    });
+
+
+    /* =========================
+       SHOW / HIDE PASSWORD
+    ========================= */
+    const passwordInput = document.getElementById('password');
+    const togglePassword = document.getElementById('toggle-password');
+
+    togglePassword.addEventListener('click', function () {
+
+        const isHidden = passwordInput.type === 'password';
+
+        passwordInput.type = isHidden ? 'text' : 'password';
+
+        this.querySelector('i').className = isHidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+        this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
 
     });
 
