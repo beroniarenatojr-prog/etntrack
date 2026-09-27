@@ -257,6 +257,22 @@
 
 
 
+
+                <li class="nav-item">
+
+                    <a href="./index.php?page=calendar"
+                       class="nav-link nav-calendar">
+
+                        <i class="fas fa-calendar-alt"></i>
+
+                        <p>Calendar</p>
+
+                    </a>
+
+                </li>
+
+
+
             </ul>
 
         </nav>

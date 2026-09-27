@@ -1,5 +1,16 @@
 <?php
+include_once 'db_connect.php';
+
 $faculty_id = $_SESSION['login_id'];
+
+// Largest form PHP accepts (post_max_size), minus 1 MB for the other fields: the picture picker stays under it
+$post_limit = trim(ini_get('post_max_size'));
+$units = array('G' => 1073741824, 'M' => 1048576, 'K' => 1024);
+$unit = strtoupper(substr($post_limit, -1));
+$max_send_bytes = (int)((float)$post_limit * (isset($units[$unit]) ? $units[$unit] : 1)) - 1048576;
+
+// For the Coordinator filter on the All Activities tab
+$coordinators = $conn->query("SELECT id, CONCAT(firstname,' ',lastname) AS name FROM faculty_list ORDER BY firstname, lastname");
 ?>
 
 <style>
@@ -13,24 +24,6 @@ $faculty_id = $_SESSION['login_id'];
     border-color:#198754;
 
     transform:scale(1.02);
-
-}
-
-.preview-box img{
-
-    display:none;
-
-    width:100%;
-
-    height:100%;
-
-    object-fit:cover;
-
-}
-
-#remove-image{
-
-    display:none;
 
 }
 
@@ -88,13 +81,6 @@ body{
 .table thead{
     background:#198754;
     color:white;
-}
-
-.activity-img{
-    width:70px;
-    height:70px;
-    object-fit:cover;
-    border-radius:10px;
 }
 
 .stats-card{
@@ -267,7 +253,7 @@ UPLOAD BOX
 
 .upload-box{
 
-height:220px;
+height:150px;
 
 border:2px dashed #1ea65b;
 
@@ -311,70 +297,53 @@ display:none;
 
 }
 
-/* Preview */
+/* Chosen pictures (thumbnails with × under the drop zone) */
 
-.preview-box{
+.image-grid{
+display:grid;
+grid-template-columns:repeat(auto-fill, minmax(84px, 1fr));
+gap:10px;
+margin-top:12px;
+}
 
-height:220px;
+.image-grid:empty{
+display:none;
+}
 
-border:2px dashed #dfe6eb;
-
-border-radius:18px;
-
-display:flex;
-
-justify-content:center;
-
-align-items:center;
-
+.image-thumb{
 position:relative;
-
+aspect-ratio:1 / 1;
+border-radius:12px;
 overflow:hidden;
-
-background:white;
-
+border:1px solid #e3e9e5;
+background:#f4f8f6;
 }
 
-.preview-box img{
-
+.image-thumb img{
+display:block;
 width:100%;
-
 height:100%;
-
 object-fit:cover;
-
-display:none;
-
 }
 
-.preview-placeholder{
-
-text-align:center;
-
-color:#9aa4af;
-
-}
-
-.preview-placeholder i{
-
-font-size:50px;
-
-margin-bottom:10px;
-
-}
-
-#remove-image{
-
+.image-thumb .remove-thumb{
 position:absolute;
+top:5px;
+right:5px;
+width:24px;
+height:24px;
+padding:0;
+border:none;
+border-radius:50%;
+background:rgba(220,53,69,.92);
+color:#fff;
+font-size:16px;
+line-height:24px;
+cursor:pointer;
+}
 
-bottom:10px;
-
-right:10px;
-
-display:none;
-
-border-radius:20px;
-
+.image-thumb .remove-thumb:hover{
+background:#b02a37;
 }
 
 /* ==========================
@@ -542,13 +511,13 @@ BUTTON
 
 }
 
-/* Filter */
+/* Status filter */
 
-.filter-btn{
+.status-filter{
 
     height:45px;
 
-    padding:0 20px;
+    padding:0 15px;
 
     border-radius:12px;
 
@@ -558,6 +527,57 @@ BUTTON
 
     font-weight:600;
 
+    color:#495057;
+
+    cursor:pointer;
+
+}
+
+.status-filter:focus{
+
+    outline:none;
+
+    border-color:#198754;
+
+}
+
+/* Date range / coordinator filter row */
+
+.activity-filters{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px 15px;
+    padding:15px 25px;
+    border-bottom:1px solid #edf1f7;
+    background:#fafcfb;
+}
+
+.activity-filters .filter-field{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.activity-filters label{
+    margin:0;
+    font-size:13px;
+    font-weight:600;
+    color:#6c757d;
+}
+
+.activity-filters .filter-input{
+    height:40px;
+    padding:0 12px;
+    border:1px solid #e5e7eb;
+    border-radius:10px;
+    background:#fff;
+    color:#495057;
+}
+
+.activity-filters .filter-input:focus{
+    outline:none;
+    border-color:#198754;
 }
 
 /* Table */
@@ -604,129 +624,69 @@ BUTTON
 
 }
 
-/* Thumbnail */
+/* ===========================
+   MY / ALL ACTIVITIES TABS
+=========================== */
 
-.activity-img{
-
-    width:85px;
-
-    height:65px;
-
+.activity-tabs .nav-link{
+    background:#fff;
+    color:#198754;
     border-radius:12px;
-
-    object-fit:cover;
-
-}
-
-/* Activity */
-
-.activity-title{
-
-    font-weight:700;
-
-    font-size:15px;
-
-}
-
-.activity-desc{
-
-    color:#8d97a5;
-
-    font-size:12px;
-
-    margin-top:5px;
-
-}
-
-/* Badges */
-
-.badge-approved{
-
-    background:#e8f9ef;
-
-    color:#1b9f58;
-
-    padding:7px 16px;
-
-    border-radius:20px;
-
+    padding:12px 24px;
+    margin-right:10px;
     font-weight:600;
-
-}
-
-.badge-pending{
-
-    background:#fff5d9;
-
-    color:#e39a00;
-
-    padding:7px 16px;
-
-    border-radius:20px;
-
-    font-weight:600;
-
-}
-
-.badge-rejected{
-
-    background:#ffeaea;
-
-    color:#ea3c3c;
-
-    padding:7px 16px;
-
-    border-radius:20px;
-
-    font-weight:600;
-
-}
-
-/* Action Buttons */
-
-.action-btn{
-
-    width:38px;
-
-    height:38px;
-
-    border:none;
-
-    border-radius:50%;
-
-    margin-right:8px;
-
+    box-shadow:0 5px 15px rgba(0,0,0,.06);
     transition:.3s;
+}
+
+.activity-tabs .nav-link:hover{
+    background:#e9f8ef;
+}
+
+.activity-tabs .nav-link.active{
+    background:linear-gradient(135deg,#198754,#157347);
+    color:#fff;
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+
+@media(max-width:992px){
+
+    .modern-header{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .header-right{
+        width:100%;
+    }
+
+    .search-box{
+        flex:1;
+    }
+
+    .search-box input{
+        width:100%;
+    }
 
 }
 
-.view-btn{
+@media(max-width:480px){
 
-    background:#eaf8ef;
+    .activity-tabs .nav-link{
+        padding:10px 16px;
+    }
 
-    color:#199d58;
+    .header-right{
+        flex-direction:column;
+        align-items:stretch;
+    }
 
-}
-
-.edit-btn{
-
-    background:#fff5da;
-
-    color:#d89b00;
-
-}
-
-.delete-btn{
-
-    background:#ffeaea;
-
-    color:#e03b3b;
-
-}
-
-.action-btn:hover{
-
-    transform:scale(1.1);
+    .status-filter{
+        width:100%;
+    }
 
 }
 
@@ -736,7 +696,21 @@ BUTTON
 
 <div class="container-fluid">
 
-<!-- Dashboard Summary -->
+<!-- My / All Activities -->
+<ul class="nav activity-tabs mb-4">
+    <li class="nav-item">
+        <a href="#mine" class="nav-link active" data-scope="mine">
+            <i class="fa fa-user"></i> My Activities
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="#all" class="nav-link" data-scope="all">
+            <i class="fa fa-users"></i> All Activities
+        </a>
+    </li>
+</ul>
+
+<!-- Dashboard Summary (follows the selected tab) -->
 <div class="row mb-4">
 
     <div class="col-lg-3 col-md-6 mb-3">
@@ -747,8 +721,8 @@ BUTTON
 
             <div class="stats-content">
                 <small>Total Activities</small>
-                <h3 id="total_activity">12</h3>
-                <span>All submitted activities</span>
+                <h3 id="total_activity">0</h3>
+                <span id="total_activity_note">Your submitted activities</span>
             </div>
 
             <div class="stats-chart text-success">
@@ -765,8 +739,8 @@ BUTTON
 
             <div class="stats-content">
                 <small>Approved</small>
-                <h3 id="approved_activity">9</h3>
-                <span>75% of total</span>
+                <h3 id="approved_activity">0</h3>
+                <span id="approved_activity_note">0% of total</span>
             </div>
 
             <div class="stats-chart text-success">
@@ -783,8 +757,8 @@ BUTTON
 
             <div class="stats-content">
                 <small>Pending</small>
-                <h3 id="pending_activity">2</h3>
-                <span>16.7% of total</span>
+                <h3 id="pending_activity">0</h3>
+                <span id="pending_activity_note">0% of total</span>
             </div>
 
             <div class="stats-chart text-warning">
@@ -801,8 +775,8 @@ BUTTON
 
             <div class="stats-content">
                 <small>Rejected</small>
-                <h3 id="rejected_activity">1</h3>
-                <span>8.3% of total</span>
+                <h3 id="rejected_activity">0</h3>
+                <span id="rejected_activity_note">0% of total</span>
             </div>
 
             <div class="stats-chart text-danger">
@@ -818,6 +792,9 @@ BUTTON
 
 
 
+<!-- MY ACTIVITIES TAB: create form + own activities -->
+<div id="tab-mine">
+
 <div class="row">
 
 <div class="col-md-4">
@@ -826,74 +803,44 @@ BUTTON
 
 <div class="card-header-green">
 
-<h4>
+<!-- Text changes to "Edit Activity" while editing (see start_edit) -->
+<h4 id="form-title">
 <i class="fa fa-calendar-plus mr-2"></i>
 Create Activity
 </h4>
 
-<p>Submit extension activities for approval.</p>
+<p id="form-subtitle">Submit extension activities for approval.</p>
 
 </div>
 <div class="card-body">
 
 <form id="activity-form" enctype="multipart/form-data">
 
+<!-- Set while editing an existing activity -->
+<input type="hidden" name="id" id="activity_id" value="">
+
+<!-- The admin's revision note, shown while editing -->
+<div id="edit-note" class="alert alert-warning" style="display:none"></div>
+
 <div class="form-group">
 
-<label>Upload Image <small class="text-muted">(Optional)</small></label>
+<label>Pictures <small class="text-muted" id="image-hint">(Optional · up to 10 · JPG, PNG, GIF or WEBP · 5 MB each)</small></label>
 
-<div class="row">
-
-<div class="col-md-6">
-
+<!-- One drop zone for several pictures; the chosen pictures show below it -->
 <label class="upload-box" id="drop-area">
-
     <i class="fa fa-cloud-upload"></i>
-
-    <h6>Drag & Drop</h6>
-
-    <small>or click to browse</small>
-
+    <h6>Drag &amp; drop pictures here</h6>
+    <small>or click to choose (you can pick several)</small>
     <input
         type="file"
-        id="activity_image"
-        name="image"
-        accept="image/*">
-
+        id="activity_images"
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        multiple>
 </label>
 
-</div>
+<div class="image-grid" id="image-grid"></div>
 
-<div class="col-md-6">
-
-<div class="preview-box">
-
-    <img id="preview-image" src="" alt="Preview">
-
-    <div class="preview-placeholder" id="preview-placeholder">
-
-        <i class="fa fa-image"></i>
-
-        <p>No image selected</p>
-
-    </div>
-
-    <button
-        type="button"
-        id="remove-image"
-        class="btn btn-danger btn-sm">
-
-        <i class="fa fa-times"></i>
-
-        Remove
-
-    </button>
-
-</div>
-
-</div>
-
-</div>
+<small class="text-muted d-block mt-2" id="image-count">0 / 10 pictures</small>
 
 </div>
 
@@ -939,6 +886,7 @@ rows="4"></textarea>
 
 <input type="date"
 name="activity_date"
+id="activity_date"
 class="form-control"
 required>
 
@@ -951,7 +899,13 @@ required>
 <input
 type="text"
 name="venue"
-class="form-control">
+id="venue"
+class="form-control"
+placeholder="e.g. ISU Gym"
+required>
+
+<!-- Shown when the venue is already booked on the chosen date -->
+<div id="venue-conflict" class="text-danger small mt-2" style="display:none"></div>
 
 </div>
 
@@ -960,8 +914,12 @@ class="form-control">
 
 <i class="fa fa-paper-plane mr-2"></i>
 
-Submit Activity
+<span id="submit-text">Submit Activity</span>
 
+</button>
+
+<button type="button" id="cancel-edit" class="btn btn-light btn-block mt-2" style="display:none">
+    Cancel editing
 </button>
 
 </form>
@@ -1000,43 +958,48 @@ Submit Activity
 
             <i class="fa fa-search"></i>
 
-            <input type="text" placeholder="Search activities...">
+            <input type="text" id="my-search" placeholder="Search activities...">
 
         </div>
 
-        <button class="filter-btn">
+        <select class="status-filter" id="my-status">
+            <option value="">All Status</option>
+            <option value="approved">Approved</option>
+            <option value="pending">Pending</option>
+            <option value="revision">Needs Revision</option>
+            <option value="rejected">Rejected</option>
+        </select>
 
-            <i class="fa fa-filter"></i>
+    </div>
 
-            Filter
+</div>
 
-        </button>
+<div class="activity-filters">
 
+    <div class="filter-field">
+        <label for="my-from">From</label>
+        <input type="date" class="filter-input" id="my-from">
+    </div>
+
+    <div class="filter-field">
+        <label for="my-to">To</label>
+        <input type="date" class="filter-input" id="my-to">
     </div>
 
 </div>
 
 <div class="card-body">
 
-<table class="table table-hover">
+<!-- Shown when rows are ticked -->
+<div class="at-bulk" id="my-bulk">
+    <span class="at-bulk-count"></span>
+    <button type="button" class="btn btn-sm btn-danger" data-bulk="delete">
+        <i class="fas fa-trash-alt mr-1"></i> Delete Selected
+    </button>
+</div>
 
-<thead>
-<tr>
-    <th>#</th>
-    <th>Image</th>
-    <th>Activity</th>
-    <th>Date</th>
-    <th>Venue</th>
-    <th>Status</th>
-    <th width="180">Action</th>
-</tr>
-</thead>
-
-<tbody id="activity-list">
-
-</tbody>
-
-</table>
+<!-- Filled by ActivityTable (assets/js/activity-table.js) -->
+<table id="my-activity-table" class="table at-table"></table>
 
 </div>
 
@@ -1047,271 +1010,524 @@ Submit Activity
 </div>
 
 </div>
+<!-- /MY ACTIVITIES TAB -->
 
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap4.min.css">
+<!-- ALL ACTIVITIES TAB: every coordinator's activities, view only -->
+<div id="tab-all" style="display:none">
 
-<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<div class="card activity-card">
 
-<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap4.min.js"></script>
+<div class="modern-header">
 
+    <div class="header-left">
 
+        <div class="header-icon">
+            <i class="fa fa-globe"></i>
+        </div>
 
+        <div>
 
+            <h4>All Activities</h4>
+
+            <p>View the extension activities of all coordinators.</p>
+
+        </div>
+
+    </div>
+
+    <div class="header-right">
+
+        <div class="search-box">
+
+            <i class="fa fa-search"></i>
+
+            <input type="text" id="all-search" placeholder="Search activities or coordinators...">
+
+        </div>
+
+        <select class="status-filter" id="all-status">
+            <option value="">All Status</option>
+            <option value="approved">Approved</option>
+            <option value="pending">Pending</option>
+            <option value="revision">Needs Revision</option>
+            <option value="rejected">Rejected</option>
+        </select>
+
+    </div>
+
+</div>
+
+<div class="activity-filters">
+
+    <div class="filter-field">
+        <label for="all-coordinator">Coordinator</label>
+        <select class="filter-input" id="all-coordinator">
+            <option value="">All Coordinators</option>
+            <?php while($c = $coordinators->fetch_assoc()): ?>
+            <option value="<?php echo $c['id'] ?>"><?php echo htmlspecialchars($c['name']) ?></option>
+            <?php endwhile; ?>
+        </select>
+    </div>
+
+    <div class="filter-field">
+        <label for="all-from">From</label>
+        <input type="date" class="filter-input" id="all-from">
+    </div>
+
+    <div class="filter-field">
+        <label for="all-to">To</label>
+        <input type="date" class="filter-input" id="all-to">
+    </div>
+
+</div>
+
+<div class="card-body">
+
+<!-- Filled by ActivityTable (assets/js/activity-table.js); view only -->
+<table id="all-activity-table" class="table at-table"></table>
+
+</div>
+
+</div>
+
+</div>
+<!-- /ALL ACTIVITIES TAB -->
+
+</div>
+
+<link rel="stylesheet" href="assets/css/activity-table.css">
+
+<script src="assets/js/activity-table.js"></script>
 
 <script>
 
+var currentScope = "mine";   // "mine" or "all"
+var activityCounts = null;   // stat card numbers from activity_counts
+var myTable, allTable;       // ActivityTable instances (assets/js/activity-table.js)
+
 $(document).ready(function(){
 
-load_activity();
+// My Activities: your own activities, with checkboxes, Delete Selected and Edit
+myTable = ActivityTable.create({
+    table: "#my-activity-table",
+    scope: "mine",
+    selectable: true,
+    showImplementer: false,
+    search: "#my-search",
+    bulkBar: "#my-bulk",
+    filters: function(){
+        return {
+            status: $("#my-status").val(),
+            date_from: $("#my-from").val(),
+            date_to: $("#my-to").val()
+        };
+    },
+    onEdit: start_edit,
+    onChange: load_activity_counts,
+    emptyText: "You haven't submitted any activities yet."
+});
+
+// All Activities: every coordinator's activities, view only
+allTable = ActivityTable.create({
+    table: "#all-activity-table",
+    scope: "all",
+    selectable: false,
+    search: "#all-search",
+    filters: function(){
+        return {
+            status: $("#all-status").val(),
+            coordinator: $("#all-coordinator").val(),
+            date_from: $("#all-from").val(),
+            date_to: $("#all-to").val()
+        };
+    },
+    onChange: load_activity_counts,
+    emptyText: "There are no submitted activities yet."
+});
+
+// Keep the selected tab after a page refresh
+if(location.hash == "#all"){
+    set_scope("all");
+}
+
+$(".activity-tabs .nav-link").click(function(e){
+    e.preventDefault();
+    set_scope($(this).data("scope"));
+    history.replaceState(null, "", $(this).attr("href"));
+});
+
+$("#my-status, #my-from, #my-to").change(function(){ myTable.reload(); });
+$("#all-status, #all-coordinator, #all-from, #all-to").change(function(){ allTable.reload(); });
+
+// Keep each date range valid: "To" can't be before "From"
+$("#my-from, #all-from").change(function(){
+    $(this).closest(".activity-filters").find('[id$="-to"]').attr("min", this.value);
+});
+
+$("#my-to, #all-to").change(function(){
+    $(this).closest(".activity-filters").find('[id$="-from"]').attr("max", this.value);
+});
+
+// Check the booking as soon as the date or venue changes
+var conflictTimer;
+
+$("#activity_date, #venue").on("input change", function(){
+    clearTimeout(conflictTimer);
+    conflictTimer = setTimeout(check_conflict, 400);
+});
+
+$("#cancel-edit").click(stop_edit);
 
 $("#activity-form").submit(function(e){
 
-e.preventDefault();
+    e.preventDefault();
 
-var formData = new FormData(this);
+    var editing = $("#activity_id").val() !== "";
+    var formData = new FormData(this);
 
-$.ajax({
+    // The chosen pictures, and saved ones to delete (see PICTURES below)
+    $.each(newImages, function(i, img){ formData.append("images[]", img.file); });
+    $.each(removedImageIds, function(i, id){ formData.append("remove_images[]", id); });
 
-url:"ajax.php?action=save_activity",
+    $.ajax({
 
-type:"POST",
+        url: editing ? "ajax.php?action=update_activity" : "ajax.php?action=save_activity",
+        type: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
 
-data:formData,
+        success: function(resp){
 
-processData:false,
+            if($.trim(resp) == "1"){
 
-contentType:false,
+                Swal.fire({
+                    icon: "success",
+                    title: "Success!",
+                    text: editing ? "Activity updated and sent back for approval." : "Activity submitted successfully.",
+                    timer: 1800,
+                    showConfirmButton: false
+                });
 
-success:function(resp){
+                stop_edit();
+                myTable.reload();
 
-    if($.trim(resp)=="1"){
+            }else{
 
+                // Someone may have booked the venue since the live check ran
+                if(resp.indexOf("already booked") > -1){
+                    show_conflict($.trim(resp));
+                }
+
+                Swal.fire({
+                    icon: "error",
+                    title: "Could not submit",
+                    // the server lists one problem per line
+                    html: ActivityTable.escape($.trim(resp)).replace(/\n/g, "<br>")
+                });
+
+            }
+
+        }
+
+    });
+
+});
+
+});
+
+/* =========================
+   CREATE / EDIT FORM
+========================= */
+
+// Loads one of your activities into the form so you can change and resubmit it
+function start_edit(row){
+
+    set_scope("mine");
+    stop_edit();
+
+    $("#activity_id").val(row.id);
+    $("#activity-form [name=activity_name]").val(row.title);
+    $("#activity-form [name=purpose]").val(row.purpose);
+    $("#activity-form [name=description]").val(row.description);
+    $("#activity_date").val(row.date);
+    $("#venue").val(row.venue);
+
+    $("#form-title").html('<i class="fa fa-pen mr-2"></i> Edit Activity');
+    $("#form-subtitle").text("Saving sends it back to the admin as Pending.");
+    $("#image-hint").text("(Up to 10 · × removes a picture when you save)");
+
+    savedImages = (row.images || []).slice();
+    render_images();
+    $("#submit-text").text("Save Changes");
+    $("#cancel-edit").show();
+
+    if(row.revision_note){
+        $("#edit-note").text("Admin note: " + row.revision_note).show();
+    }
+
+    check_conflict();
+
+    $("html, body").animate({ scrollTop: $("#activity-form").closest(".card").offset().top - 80 }, 300);
+
+}
+
+// Back to an empty "Create Activity" form
+function stop_edit(){
+
+    $("#activity-form")[0].reset();
+    $("#activity_id").val("");
+
+    clear_images();
+    show_conflict("");
+
+    $("#edit-note").hide().text("");
+    $("#form-title").html('<i class="fa fa-calendar-plus mr-2"></i> Create Activity');
+    $("#form-subtitle").text("Submit extension activities for approval.");
+    $("#image-hint").text("(Optional · up to 10 · JPG, PNG, GIF or WEBP · 5 MB each)");
+    $("#submit-text").text("Submit Activity");
+    $("#cancel-edit").hide();
+
+}
+
+/* =========================
+   PICTURES (up to 10 per activity)
+   The file input can't be edited, so the chosen pictures are kept here and
+   added to the form data on submit (images[] and remove_images[]).
+========================= */
+
+var MAX_IMAGES = 10;
+var MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+var MAX_SEND_BYTES = <?php echo $max_send_bytes; ?>;   // PHP's post_max_size, minus room for the form fields
+var IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+
+var savedImages = [];       // pictures already saved for the activity being edited: {id, url}
+var removedImageIds = [];   // saved pictures to delete when saving
+var newImages = [];         // pictures chosen now: {file, url}
+
+function image_total(){
+    return savedImages.length + newImages.length;
+}
+
+// Adds chosen/dropped pictures, skipping (and listing) any that break the rules
+function add_images(fileList){
+
+    var problems = [];
+
+    $.each(fileList, function(i, file){
+
+        var sending = newImages.reduce(function(sum, img){ return sum + img.file.size; }, 0);
+
+        if(IMAGE_TYPES.indexOf(file.type) === -1){
+            problems.push(file.name + " is not a JPG, PNG, GIF or WEBP picture.");
+        }else if(file.size > MAX_IMAGE_BYTES){
+            problems.push(file.name + " is larger than 5 MB.");
+        }else if(image_total() >= MAX_IMAGES){
+            problems.push(file.name + " was not added: an activity can have up to " + MAX_IMAGES + " pictures.");
+        }else if(sending + file.size > MAX_SEND_BYTES){
+            problems.push(file.name + " was not added: one save can send up to " + Math.floor(MAX_SEND_BYTES / 1048576) + " MB of pictures. Add it afterwards with Edit.");
+        }else{
+            newImages.push({ file: file, url: URL.createObjectURL(file) });
+        }
+
+    });
+
+    render_images();
+
+    if(problems.length){
         Swal.fire({
-            icon:"success",
-            title:"Success!",
-            text:"Activity submitted successfully.",
-            timer:1800,
-            showConfirmButton:false
+            icon: "warning",
+            title: "Some pictures were not added",
+            html: problems.map(ActivityTable.escape).join("<br>")
         });
+    }
 
-        $("#activity-form")[0].reset();
+}
 
-        $("#preview-image").attr("src","").hide();
-        $("#preview-placeholder").show();
-        $("#remove-image").hide();
-        $("#activity_image").val("");
+function render_images(){
 
-        load_activity();
+    var $grid = $("#image-grid").empty();
 
+    $.each(savedImages, function(i, img){ $grid.append(image_thumb(img.url, "saved", i)); });
+    $.each(newImages, function(i, img){ $grid.append(image_thumb(img.url, "new", i)); });
+
+    $("#image-count").text(image_total() + " / " + MAX_IMAGES + " pictures");
+
+}
+
+function image_thumb(url, kind, index){
+
+    return $('<div class="image-thumb"></div>')
+        .append($('<img alt="">').attr("src", url))
+        .append(
+            $('<button type="button" class="remove-thumb" title="Remove this picture" aria-label="Remove this picture">&times;</button>')
+                .attr({ "data-kind": kind, "data-index": index })
+        );
+
+}
+
+// × on a thumbnail: new pictures are dropped now, saved ones are deleted when saving
+$("#image-grid").on("click", ".remove-thumb", function(){
+
+    var index = Number($(this).attr("data-index"));
+
+    if($(this).attr("data-kind") === "saved"){
+        removedImageIds.push(savedImages[index].id);
+        savedImages.splice(index, 1);
     }else{
-
-        Swal.fire({
-            icon:"error",
-            title:"Upload Failed",
-            text:resp
-        });
-
+        URL.revokeObjectURL(newImages[index].url);
+        newImages.splice(index, 1);
     }
+
+    render_images();
+
+});
+
+function clear_images(){
+
+    $.each(newImages, function(i, img){ URL.revokeObjectURL(img.url); });
+
+    savedImages = [];
+    removedImageIds = [];
+    newImages = [];
+
+    $("#activity_images").val("");
+    render_images();
 
 }
 
-});
-
-});
-
-});
-
-function previewFile(file){
-
-    if(!file) return;
-
-    if(!file.type.startsWith("image/")){
-        alert("Please select an image.");
-        return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = function(e){
-
-        $("#preview-image")
-            .attr("src",e.target.result)
-            .fadeIn();
-
-        $("#preview-placeholder").hide();
-
-        $("#remove-image").show();
-
-    }
-
-    reader.readAsDataURL(file);
-
-}
-
-// normal browse
-$("#activity_image").on("change",function(){
-
-    previewFile(this.files[0]);
-
-});
-
-// remove
-$("#remove-image").click(function(){
-
-    $("#activity_image").val("");
-
-    $("#preview-image")
-        .attr("src","")
-        .hide();
-
-    $("#preview-placeholder").show();
-
-    $(this).hide();
-
+// choose with the file picker (several at once)
+$("#activity_images").on("change", function(){
+    add_images(this.files);
+    this.value = "";   // so the same picture can be picked again after removing it
 });
 
 // drag and drop
-const dropArea=document.getElementById("drop-area");
+const dropArea = document.getElementById("drop-area");
 
-["dragenter","dragover"].forEach(eventName=>{
-
-dropArea.addEventListener(eventName,function(e){
-
-e.preventDefault();
-
-dropArea.classList.add("dragging");
-
+["dragenter", "dragover"].forEach(eventName => {
+    dropArea.addEventListener(eventName, function(e){
+        e.preventDefault();
+        dropArea.classList.add("dragging");
+    });
 });
 
+["dragleave", "drop"].forEach(eventName => {
+    dropArea.addEventListener(eventName, function(e){
+        e.preventDefault();
+        dropArea.classList.remove("dragging");
+    });
 });
 
-["dragleave","drop"].forEach(eventName=>{
-
-dropArea.addEventListener(eventName,function(e){
-
-e.preventDefault();
-
-dropArea.classList.remove("dragging");
-
+dropArea.addEventListener("drop", function(e){
+    add_images(e.dataTransfer.files);
 });
 
-});
+render_images();
 
-dropArea.addEventListener("drop",function(e){
+// Asks the server whether the chosen venue is already booked on that date
+function check_conflict(){
 
-const files=e.dataTransfer.files;
+    var date = $("#activity_date").val();
+    var venue = $.trim($("#venue").val());
 
-if(files.length){
+    if(!date || !venue){
+        show_conflict("");
+        return;
+    }
 
-$("#activity_image")[0].files=files;
+    $.ajax({
 
-previewFile(files[0]);
+        url: "ajax.php?action=check_activity_conflict",
+        dataType: "json",
+        // While editing, the activity's own booking doesn't count as a conflict
+        data: { activity_date: date, venue: venue, exclude_id: $("#activity_id").val() },
 
-}
+        success: function(resp){
 
-});
+            // Ignore answers for a date/venue the user has already changed
+            if(date != $("#activity_date").val() || venue != $.trim($("#venue").val())) return;
 
-
-
-
-
-function load_activity(){
-
-$.ajax({
-
-url:"ajax.php?action=list_activity",
-
-success:function(resp){
-
-$("#activity-list").html(resp);
-
-}
-
-});
-
-}
-
-function delete_activity(id){
-
-    Swal.fire({
-
-        title:'Delete Activity?',
-
-        text:'This action cannot be undone.',
-
-        icon:'warning',
-
-        showCancelButton:true,
-
-        confirmButtonColor:'#dc3545',
-
-        cancelButtonColor:'#6c757d',
-
-        confirmButtonText:'Delete',
-
-        cancelButtonText:'Cancel'
-
-    }).then((result)=>{
-
-        if(result.isConfirmed){
-
-            $.ajax({
-
-                url:"ajax.php?action=delete_activity&id="+id,
-
-                success:function(resp){
-
-                    if($.trim(resp)=="1"){
-
-                        Swal.fire({
-
-                            icon:'success',
-
-                            title:'Deleted!',
-
-                            text:'Activity deleted successfully.',
-
-                            timer:1800,
-
-                            showConfirmButton:false
-
-                        });
-
-                        load_activity();
-
-                    }else{
-
-                        Swal.fire({
-
-                            icon:'error',
-
-                            title:'Delete Failed',
-
-                            text:resp
-
-                        });
-
-                    }
-
-                },
-
-                error:function(){
-
-                    Swal.fire({
-
-                        icon:'error',
-
-                        title:'Server Error',
-
-                        text:'Unable to delete the activity.'
-
-                    });
-
-                }
-
-            });
+            show_conflict(resp.conflict ? resp.message : "");
 
         }
+
+    });
+
+}
+
+// Shows the conflict under Venue and blocks Submit until it's resolved
+function show_conflict(message){
+
+    $("#venue-conflict").text(message).toggle(message != "");
+    $("#venue").toggleClass("is-invalid", message != "");
+    $("#activity-form .btn-save").prop("disabled", message != "");
+
+}
+
+/* =========================
+   TABS + STAT CARDS
+========================= */
+
+function set_scope(scope){
+
+    currentScope = scope;
+
+    $(".activity-tabs .nav-link").removeClass("active");
+    $('.activity-tabs .nav-link[data-scope="' + scope + '"]').addClass("active");
+
+    $("#tab-mine").toggle(scope == "mine");
+    $("#tab-all").toggle(scope == "all");
+
+    // Fresh rows each time the tab opens; widths are measured once it's visible
+    if(scope == "all" && allTable){
+        allTable.reload();
+        allTable.dt.columns.adjust();
+    }
+
+    render_counts();
+
+}
+
+function load_activity_counts(){
+
+    $.ajax({
+
+        url: "ajax.php?action=activity_counts",
+        dataType: "json",
+
+        success: function(resp){
+            activityCounts = resp;
+            render_counts();
+        },
+
+        error: function(xhr){
+            console.log(xhr.responseText);
+        }
+
+    });
+
+}
+
+// Fill the stat cards with the numbers for the selected tab
+function render_counts(){
+
+    if(!activityCounts) return;
+
+    var counts = activityCounts[currentScope];
+
+    $("#total_activity").text(counts.total);
+
+    $("#total_activity_note").text(
+        currentScope == "mine" ? "Your submitted activities" : "All coordinators' activities"
+    );
+
+    $.each(["approved", "pending", "rejected"], function(i, status){
+
+        var percent = counts.total ? Math.round(counts[status] / counts.total * 1000) / 10 : 0;
+
+        $("#" + status + "_activity").text(counts[status]);
+        $("#" + status + "_activity_note").text(percent + "% of total");
 
     });
 

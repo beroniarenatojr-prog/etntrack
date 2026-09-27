@@ -27,18 +27,37 @@ if($action == 'logout2'){
 }
 
 
-if($action == 'delete_activity_admin'){ 
-    $delete = $crud->delete_activity_admin(); 
-    if($delete) 
-        echo $delete; 
+
+if($action == 'activity_counts'){
+    echo $crud->activity_counts();
 }
 
+if($action == 'check_activity_conflict'){
+    echo $crud->check_activity_conflict();
+}
 
-if($action == 'all_list_activity'){
-    $data = $crud->all_list_activity();
+if($action == 'calendar_events'){
+    echo $crud->calendar_events();
+}
 
-    if($data)
-        echo $data;
+if($action == 'calendar_ics'){
+    echo $crud->calendar_ics();
+}
+
+if($action == 'activity_table'){
+    echo $crud->activity_table();
+}
+
+if($action == 'bulk_activity_action'){
+    echo $crud->bulk_activity_action();
+}
+
+if($action == 'set_activity_revision'){
+    echo $crud->set_activity_revision();
+}
+
+if($action == 'update_activity'){
+    echo $crud->update_activity();
 }
 
 
@@ -75,11 +94,6 @@ if($action == 'save_user'){
 	if($save)
 		echo $save;
 }
-if($action == 'list_activity'){
-    $list = $crud->list_activity();
-    if($list)
-        echo $list;
-}
 
 if($action == 'delete_report'){
     echo $crud->delete_report();
@@ -91,11 +105,6 @@ if($action == "update_activity_status"){
 }
 
 
-if($action == 'delete_activity'){
-    $delete = $crud->delete_activity();
-    if($delete)
-        echo $delete;
-}
 
 if($action == 'save_activity'){
     $save = $crud->save_activity();

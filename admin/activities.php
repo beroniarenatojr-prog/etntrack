@@ -55,7 +55,7 @@
                     Pending Review
                 </span>
 
-                <strong>
+                <strong id="stat-header-pending">
                     <?php echo number_format($pending_count); ?>
                 </strong>
 
@@ -78,7 +78,7 @@
                 <div>
                     <small>Total Activities</small>
 
-                    <strong>
+                    <strong id="stat-total">
                         <?php
                         $total = $conn->query("
                             SELECT COUNT(*) AS total
@@ -102,7 +102,7 @@
                 <div>
                     <small>Pending</small>
 
-                    <strong>
+                    <strong id="stat-pending">
                         <?php echo number_format($pending_count); ?>
                     </strong>
                 </div>
@@ -119,7 +119,7 @@
                 <div>
                     <small>Approved</small>
 
-                    <strong>
+                    <strong id="stat-approved">
                         <?php echo number_format($approved_count); ?>
                     </strong>
                 </div>
@@ -136,7 +136,7 @@
                 <div>
                     <small>Rejected</small>
 
-                    <strong>
+                    <strong id="stat-rejected">
                         <?php echo number_format($rejected_count); ?>
                     </strong>
                 </div>
@@ -147,463 +147,42 @@
 
 
         <!-- ======================================
-             TABLE
+             TABLE (filled by assets/js/activity-table.js)
         ======================================= -->
         <div class="card-body activity-body">
 
-            <div class="table-responsive">
-
-                <table
-                    class="table modern-table"
-                    id="list"
-                    width="100%"
-                >
-
-                    <thead>
-
-                        <tr>
-
-                            <th width="45">#</th>
-
-                            <th>Faculty</th>
-
-                            <th>Activity</th>
-
-                            <th>Purpose</th>
-
-                            <th>Date</th>
-
-                            <th>Venue</th>
-
-                            <th class="text-center">
-                                Image
-                            </th>
-
-                            <th class="text-center">
-                                Status
-                            </th>
-
-                            <th class="text-center action-column">
-                                Action
-                            </th>
-
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody>
-
-                    <?php
-
-                    $i = 1;
-
-                    $qry = $conn->query("
-                        SELECT
-                            a.*,
-                            CONCAT(
-                                f.firstname,
-                                ' ',
-                                f.lastname
-                            ) AS faculty_name
-                        FROM activities a
-                        LEFT JOIN faculty_list f
-                            ON a.faculty_id = f.id
-                        ORDER BY a.created_at DESC
-                    ");
-
-                    if($qry && $qry->num_rows > 0):
-
-                        while($row = $qry->fetch_assoc()):
-
-                            $faculty_name = !empty($row['faculty_name'])
-                                ? $row['faculty_name']
-                                : "Faculty #".$row['faculty_id'];
-
-                            $activity_name = htmlspecialchars(
-                                $row['activity_name'] ?? '',
-                                ENT_QUOTES,
-                                'UTF-8'
-                            );
-
-                            $purpose = htmlspecialchars(
-                                $row['purpose'] ?? '',
-                                ENT_QUOTES,
-                                'UTF-8'
-                            );
-
-                            $venue = htmlspecialchars(
-                                $row['venue'] ?? '',
-                                ENT_QUOTES,
-                                'UTF-8'
-                            );
-
-                    ?>
-
-                    <tr>
-
-                        <!-- NUMBER -->
-                        <td>
-
-                            <span class="row-number">
-                                <?php echo $i++; ?>
-                            </span>
-
-                        </td>
-
-
-                        <!-- FACULTY -->
-                        <td>
-
-                            <div class="faculty-info">
-
-                                <div class="faculty-avatar">
-
-                                    <?php
-                                    echo strtoupper(
-                                        substr(
-                                            trim($faculty_name),
-                                            0,
-                                            1
-                                        )
-                                    );
-                                    ?>
-
-                                </div>
-
-                                <div>
-
-                                    <strong>
-
-                                        <?php
-                                        echo htmlspecialchars(
-                                            $faculty_name,
-                                            ENT_QUOTES,
-                                            'UTF-8'
-                                        );
-                                        ?>
-
-                                    </strong>
-
-                                    <small>
-                                        Extension Coordinator
-                                    </small>
-
-                                </div>
-
-                            </div>
-
-                        </td>
-
-
-                        <!-- ACTIVITY -->
-                        <td>
-
-                            <div class="activity-name">
-
-                                <i class="fas fa-bookmark"></i>
-
-                                <strong>
-                                    <?php echo $activity_name; ?>
-                                </strong>
-
-                            </div>
-
-                        </td>
-
-
-                        <!-- PURPOSE -->
-                        <td>
-
-                            <div class="purpose-text">
-
-                                <?php echo $purpose; ?>
-
-                            </div>
-
-                        </td>
-
-
-                        <!-- DATE -->
-                        <td>
-
-                            <div class="date-box">
-
-                                <i class="far fa-calendar-alt"></i>
-
-                                <span>
-
-                                <?php
-
-                                if(
-                                    !empty($row['activity_date']) &&
-                                    strtotime($row['activity_date'])
-                                ){
-
-                                    echo date(
-                                        "M d, Y",
-                                        strtotime(
-                                            $row['activity_date']
-                                        )
-                                    );
-
-                                }else{
-
-                                    echo "-";
-
-                                }
-
-                                ?>
-
-                                </span>
-
-                            </div>
-
-                        </td>
-
-
-                        <!-- VENUE -->
-                        <td>
-
-                            <?php if(!empty($venue)): ?>
-
-                                <div class="venue-box">
-
-                                    <i class="fas fa-map-marker-alt"></i>
-
-                                    <span>
-                                        <?php echo $venue; ?>
-                                    </span>
-
-                                </div>
-
-                            <?php else: ?>
-
-                                <span class="empty-value">
-                                    No venue
-                                </span>
-
-                            <?php endif; ?>
-
-                        </td>
-
-
-                        <!-- IMAGE -->
-                        <td class="text-center">
-
-                            <?php if(!empty($row['image'])): ?>
-
-                                <a
-                                    href="uploads/activities/<?php
-                                        echo htmlspecialchars(
-                                            $row['image'],
-                                            ENT_QUOTES,
-                                            'UTF-8'
-                                        );
-                                    ?>"
-                                    target="_blank"
-                                    class="image-preview"
-                                    title="View Activity Image"
-                                >
-
-                                    <img
-                                        src="uploads/activities/<?php
-                                            echo htmlspecialchars(
-                                                $row['image'],
-                                                ENT_QUOTES,
-                                                'UTF-8'
-                                            );
-                                        ?>"
-                                        class="activity-img"
-                                        alt="Activity Image"
-                                    >
-
-                                    <span class="image-overlay">
-                                        <i class="fas fa-search-plus"></i>
-                                    </span>
-
-                                </a>
-
-                            <?php else: ?>
-
-                                <div class="no-image">
-
-                                    <i class="fas fa-image"></i>
-
-                                    <span>
-                                        No Image
-                                    </span>
-
-                                </div>
-
-                            <?php endif; ?>
-
-                        </td>
-
-
-                        <!-- STATUS -->
-                        <td class="text-center">
-
-                            <?php if($row['status'] == 'pending'): ?>
-
-                                <span class="status-badge pending">
-
-                                    <i class="fas fa-clock"></i>
-
-                                    Pending
-
-                                </span>
-
-                            <?php elseif($row['status'] == 'approved'): ?>
-
-                                <span class="status-badge approved">
-
-                                    <i class="fas fa-check-circle"></i>
-
-                                    Approved
-
-                                </span>
-
-                            <?php elseif($row['status'] == 'rejected'): ?>
-
-                                <span class="status-badge rejected">
-
-                                    <i class="fas fa-times-circle"></i>
-
-                                    Rejected
-
-                                </span>
-
-                            <?php else: ?>
-
-                                <span class="status-badge unknown">
-                                    Unknown
-                                </span>
-
-                            <?php endif; ?>
-
-                        </td>
-
-
-                        <!-- ACTION -->
-                        <td class="text-center">
-
-                            <div class="action-buttons">
-
-
-                            <?php if($row['status'] == 'pending'): ?>
-
-                                <!-- APPROVE -->
-
-                                <button
-                                    type="button"
-                                    class="activity-action approve_activity"
-                                    data-id="<?php echo $row['id']; ?>"
-                                    title="Approve Activity"
-                                >
-
-                                    <i class="fas fa-check"></i>
-
-                                    <span>
-                                        Approve
-                                    </span>
-
-                                </button>
-
-
-                                <!-- REJECT -->
-
-                                <button
-                                    type="button"
-                                    class="activity-action reject reject_activity"
-                                    data-id="<?php echo $row['id']; ?>"
-                                    title="Reject Activity"
-                                >
-
-                                    <i class="fas fa-times"></i>
-
-                                    <span>
-                                        Reject
-                                    </span>
-
-                                </button>
-
-
-                            <?php elseif($row['status'] == 'approved'): ?>
-
-                                <!-- GENERATE QR -->
-
-                                <a
-                                    href="faculty/generate_qr.php?id=<?php
-                                        echo $row['id'];
-                                    ?>"
-                                    target="_blank"
-                                    class="activity-action qr-button"
-                                    title="Generate QR Code"
-                                >
-
-                                    <i class="fas fa-qrcode"></i>
-
-                                    <span>
-                                        Generate QR
-                                    </span>
-
-                                </a>
-
-
-                            <?php elseif($row['status'] == 'rejected'): ?>
-
-                                <span class="no-action">
-
-                                    <i class="fas fa-ban"></i>
-
-                                    No Action
-
-                                </span>
-
-
-                            <?php endif; ?>
-
-
-                                <!-- ======================================
-                                     DELETE
-                                ======================================= -->
-
-                                <button
-                                    type="button"
-                                    class="activity-action delete_activity"
-                                    data-id="<?php echo $row['id']; ?>"
-                                    title="Delete Activity"
-                                >
-
-                                    <i class="fas fa-trash-alt"></i>
-
-                                    <span>
-                                        Delete
-                                    </span>
-
-                                </button>
-
-
-                            </div>
-
-                        </td>
-
-                    </tr>
-
-                    <?php
-
-                        endwhile;
-
-                    endif;
-
-                    ?>
-
-                    </tbody>
-
-                </table>
+            <div class="admin-activity-toolbar">
+
+                <div class="admin-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="admin-search" placeholder="Search by activity or implementer...">
+                </div>
+
+                <select id="admin-status" class="form-control">
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="revision">Needs Revision</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
 
             </div>
+
+            <!-- Shown when rows are ticked -->
+            <div class="at-bulk" id="admin-bulk">
+                <span class="at-bulk-count"></span>
+                <button type="button" class="btn btn-sm btn-success" data-bulk="approve">
+                    <i class="fas fa-check mr-1"></i> Approve Selected
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" data-bulk="reject">
+                    <i class="fas fa-times mr-1"></i> Reject Selected
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" data-bulk="delete">
+                    <i class="fas fa-trash-alt mr-1"></i> Delete Selected
+                </button>
+            </div>
+
+            <table id="admin-activity-table" class="table at-table"></table>
 
         </div>
 
@@ -943,785 +522,45 @@
 
 
 /* ==========================================
-   TABLE
+   TABLE TOOLBAR (the table itself: assets/css/activity-table.css)
 ========================================== */
 
-.modern-table{
-
-    margin:0!important;
-
-    border-collapse:separate;
-
-    border-spacing:0 7px;
-
-}
-
-
-.modern-table thead th{
-
-    background:#f0fdf4;
-
-    color:#166534;
-
-    border:none!important;
-
-    padding:14px 13px;
-
-    font-size:12px;
-
-    text-transform:uppercase;
-
-    letter-spacing:.35px;
-
-    white-space:nowrap;
-
-}
-
-
-.modern-table thead th:first-child{
-
-    border-radius:10px 0 0 10px;
-
-}
-
-
-.modern-table thead th:last-child{
-
-    border-radius:0 10px 10px 0;
-
-}
-
-
-.modern-table tbody tr{
-
-    background:#fff;
-
-    transition:.2s;
-
-}
-
-
-.modern-table tbody tr:hover{
-
-    background:#f8fffa;
-
-    box-shadow:
-        0 5px 18px rgba(0,0,0,.045);
-
-}
-
-
-.modern-table tbody td{
-
-    border-top:1px solid #f0f2f3;
-
-    border-bottom:1px solid #f0f2f3;
-
-    padding:13px;
-
-    vertical-align:middle;
-
-    color:#374151;
-
-    font-size:13px;
-
-}
-
-
-.modern-table tbody td:first-child{
-
-    border-left:1px solid #f0f2f3;
-
-    border-radius:12px 0 0 12px;
-
-}
-
-
-.modern-table tbody td:last-child{
-
-    border-right:1px solid #f0f2f3;
-
-    border-radius:0 12px 12px 0;
-
-}
-
-
-/* ==========================================
-   ROW NUMBER
-========================================== */
-
-.row-number{
-
-    width:30px;
-
-    height:30px;
-
-    display:inline-flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    background:#ecfdf5;
-
-    color:#15803d;
-
-    border-radius:9px;
-
-    font-weight:700;
-
-    font-size:12px;
-
-}
-
-
-/* ==========================================
-   FACULTY
-========================================== */
-
-.faculty-info{
-
+.admin-activity-toolbar{
     display:flex;
-
-    align-items:center;
-
+    flex-wrap:wrap;
     gap:10px;
-
-    min-width:170px;
-
+    margin-bottom:15px;
 }
 
-
-.faculty-avatar{
-
-    width:39px;
-
-    height:39px;
-
-    flex:none;
-
+.admin-search{
+    flex:1 1 260px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    height:44px;
+    padding:0 14px;
+    border:1px solid #e5e7eb;
     border-radius:12px;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    background:
-        linear-gradient(
-            135deg,
-            #dcfce7,
-            #bbf7d0
-        );
-
-    color:#15803d;
-
-    font-weight:800;
-
+    background:#fff;
 }
 
-
-.faculty-info strong{
-
-    display:block;
-
-    color:#1f2937;
-
-    font-size:13px;
-
-}
-
-
-.faculty-info small{
-
-    display:block;
-
+.admin-search i{
     color:#9ca3af;
-
-    font-size:10px;
-
-    margin-top:2px;
-
 }
 
-
-/* ==========================================
-   ACTIVITY
-========================================== */
-
-.activity-name{
-
-    display:flex;
-
-    align-items:flex-start;
-
-    gap:8px;
-
-    min-width:150px;
-
-}
-
-
-.activity-name i{
-
-    color:#16a34a;
-
-    margin-top:2px;
-
-}
-
-
-.activity-name strong{
-
-    color:#166534;
-
-    line-height:1.4;
-
-}
-
-
-/* ==========================================
-   PURPOSE
-========================================== */
-
-.purpose-text{
-
-    max-width:220px;
-
-    line-height:1.5;
-
-    color:#6b7280;
-
-}
-
-
-/* ==========================================
-   DATE
-========================================== */
-
-.date-box{
-
-    display:flex;
-
-    align-items:center;
-
-    gap:7px;
-
-    white-space:nowrap;
-
-}
-
-
-.date-box i{
-
-    color:#16a34a;
-
-}
-
-
-/* ==========================================
-   VENUE
-========================================== */
-
-.venue-box{
-
-    display:flex;
-
-    align-items:flex-start;
-
-    gap:7px;
-
-    max-width:150px;
-
-}
-
-
-.venue-box i{
-
-    color:#ef4444;
-
-    margin-top:3px;
-
-}
-
-
-.venue-box span{
-
-    line-height:1.4;
-
-}
-
-
-.empty-value{
-
-    color:#a1a1aa;
-
-    font-style:italic;
-
-}
-
-
-/* ==========================================
-   IMAGE
-========================================== */
-
-.image-preview{
-
-    position:relative;
-
-    width:62px;
-
-    height:62px;
-
-    display:inline-block;
-
-    overflow:hidden;
-
-    border-radius:13px;
-
-    border:3px solid #dcfce7;
-
-}
-
-
-.activity-img{
-
-    width:100%;
-
-    height:100%;
-
-    object-fit:cover;
-
-    display:block;
-
-    transition:.3s;
-
-}
-
-
-.image-overlay{
-
-    position:absolute;
-
-    inset:0;
-
-    background:rgba(22,163,74,.72);
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    color:#fff;
-
-    font-size:16px;
-
-    opacity:0;
-
-    transition:.25s;
-
-}
-
-
-.image-preview:hover .image-overlay{
-
-    opacity:1;
-
-}
-
-
-.image-preview:hover .activity-img{
-
-    transform:scale(1.08);
-
-}
-
-
-.no-image{
-
-    width:62px;
-
-    height:62px;
-
-    margin:auto;
-
-    border-radius:13px;
-
-    background:#f5f7f8;
-
-    color:#9ca3af;
-
-    display:flex;
-
-    flex-direction:column;
-
-    align-items:center;
-
-    justify-content:center;
-
-    font-size:17px;
-
-}
-
-
-.no-image span{
-
-    font-size:9px;
-
-    margin-top:3px;
-
-}
-
-
-/* ==========================================
-   STATUS
-========================================== */
-
-.status-badge{
-
-    display:inline-flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    gap:6px;
-
-    padding:7px 12px;
-
-    border-radius:30px;
-
-    font-size:11px;
-
-    font-weight:700;
-
-    white-space:nowrap;
-
-}
-
-
-.status-badge.pending{
-
-    background:#fffbeb;
-
-    color:#a16207;
-
-    border:1px solid #fde68a;
-
-}
-
-
-.status-badge.approved{
-
-    background:#ecfdf5;
-
-    color:#15803d;
-
-    border:1px solid #bbf7d0;
-
-}
-
-
-.status-badge.rejected{
-
-    background:#fef2f2;
-
-    color:#b91c1c;
-
-    border:1px solid #fecaca;
-
-}
-
-
-.status-badge.unknown{
-
-    background:#f3f4f6;
-
-    color:#6b7280;
-
-}
-
-
-/* ==========================================
-   ACTION BUTTONS
-========================================== */
-
-.action-buttons{
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    gap:5px;
-
-    min-width:170px;
-
-}
-
-
-.activity-action{
-
+.admin-search input{
+    flex:1;
     border:none;
-
-    border-radius:9px;
-
-    padding:8px 10px;
-
-    font-size:11px;
-
-    font-weight:700;
-
-    display:inline-flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    gap:5px;
-
-    cursor:pointer;
-
-    text-decoration:none!important;
-
-    transition:.2s;
-
+    outline:none;
+    background:transparent;
 }
 
-
-.activity-action:hover{
-
-    transform:translateY(-2px);
-
+#admin-status{
+    flex:0 0 190px;
+    height:44px;
+    border-radius:12px;
+    border-color:#e5e7eb;
 }
-
-
-.approve_activity{
-
-    background:#16a34a;
-
-    color:#fff;
-
-}
-
-
-.approve_activity:hover{
-
-    background:#15803d;
-
-    color:#fff;
-
-    box-shadow:
-        0 5px 12px rgba(22,163,74,.22);
-
-}
-
-
-.activity-action.reject{
-
-    background:#fee2e2;
-
-    color:#dc2626;
-
-}
-
-
-.activity-action.reject:hover{
-
-    background:#fecaca;
-
-    color:#b91c1c;
-
-}
-
-
-.qr-button{
-
-    background:#2563eb;
-
-    color:#fff;
-
-}
-
-
-.qr-button:hover{
-
-    background:#1d4ed8;
-
-    color:#fff;
-
-    box-shadow:
-        0 5px 12px rgba(37,99,235,.20);
-
-}
-
-
-/* ==========================================
-   DELETE BUTTON
-========================================== */
-
-.activity-action.delete_activity{
-
-    background:#fff1f2;
-
-    color:#e11d48;
-
-    border:1px solid #fecdd3;
-
-}
-
-
-.activity-action.delete_activity:hover{
-
-    background:#e11d48;
-
-    color:#fff;
-
-    border-color:#e11d48;
-
-    box-shadow:
-        0 5px 12px rgba(225,29,72,.20);
-
-}
-
-
-.no-action{
-
-    color:#9ca3af;
-
-    font-size:11px;
-
-    font-style:italic;
-
-}
-
-
-/* ==========================================
-   DATATABLE
-========================================== */
-
-.dataTables_wrapper{
-
-    padding-top:5px;
-
-}
-
-
-.dataTables_wrapper .dataTables_filter{
-
-    margin-bottom:12px;
-
-}
-
-
-.dataTables_wrapper .dataTables_filter label{
-
-    color:#6b7280;
-
-    font-size:13px;
-
-    font-weight:600;
-
-}
-
-
-.dataTables_wrapper .dataTables_filter input{
-
-    border:1px solid #dfe7e2!important;
-
-    border-radius:10px!important;
-
-    padding:8px 12px!important;
-
-    outline:none!important;
-
-    margin-left:7px!important;
-
-}
-
-
-.dataTables_wrapper .dataTables_filter input:focus{
-
-    border-color:#22c55e!important;
-
-    box-shadow:
-        0 0 0 3px rgba(34,197,94,.10);
-
-}
-
-
-.dataTables_wrapper .dataTables_length{
-
-    color:#6b7280;
-
-    font-size:13px;
-
-}
-
-
-.dataTables_wrapper .dataTables_length select{
-
-    border:1px solid #dfe7e2;
-
-    border-radius:8px;
-
-    padding:5px 8px;
-
-}
-
-
-.dataTables_wrapper .dataTables_info{
-
-    color:#9ca3af;
-
-    font-size:12px;
-
-}
-
-
-.dataTables_wrapper .dataTables_paginate{
-
-    margin-top:10px;
-
-}
-
-
-.dataTables_wrapper .dataTables_paginate .paginate_button{
-
-    border:none!important;
-
-    border-radius:8px!important;
-
-    margin:2px!important;
-
-    color:#166534!important;
-
-}
-
-
-.dataTables_wrapper .dataTables_paginate .paginate_button.current{
-
-    background:#16a34a!important;
-
-    color:#fff!important;
-
-    border:none!important;
-
-}
-
-
-.dataTables_wrapper .dataTables_paginate .paginate_button:hover{
-
-    background:#dcfce7!important;
-
-    color:#166534!important;
-
-}
-
-
 /* ==========================================
    RESPONSIVE
 ========================================== */
@@ -1832,379 +671,60 @@
 
     }
 
-    .action-buttons{
-
-        flex-direction:column;
-
-    }
-
-    .activity-action{
-
-        width:100%;
-
-    }
-
 }
 
-
-/* ==========================================
-   DELETE BUTTON MOBILE
-========================================== */
-
-@media(max-width:500px){
-
-    .activity-action.delete_activity{
-
-        width:100%;
-
-    }
-
-}
 
 </style>
 
 
 <!-- ==========================================
      JAVASCRIPT
-========================================== -->
+=========================================== -->
+<link rel="stylesheet" href="assets/css/activity-table.css">
+
+<script src="assets/js/activity-table.js"></script>
 
 <script>
 
+var adminTable;   // ActivityTable instance (assets/js/activity-table.js)
+
 $(document).ready(function(){
 
-    /* ======================================
-       DATATABLE
-    ======================================= */
-
-    $('#list').DataTable({
-
-        responsive: true,
-
-        pageLength: 10,
-
-        lengthMenu: [
-            [10, 25, 50, -1],
-            [10, 25, 50, "All"]
-        ],
-
-        order: [],
-
-        columnDefs: [
-
-            {
-                orderable:false,
-                targets:[
-                    6,
-                    8
-                ]
-            }
-
-        ],
-
-        language: {
-
-            search: "",
-
-            searchPlaceholder:
-                "Search activities...",
-
-            lengthMenu:
-                "Show _MENU_ activities",
-
-            emptyTable:
-                "No activities submitted yet.",
-
-            zeroRecords:
-                "No matching activities found."
-
-        }
-
+    // Every coordinator's activities, with bulk Approve / Reject / Delete
+    adminTable = ActivityTable.create({
+        table: "#admin-activity-table",
+        selectable: true,
+        search: "#admin-search",
+        bulkBar: "#admin-bulk",
+        filters: function(){
+            return { status: $("#admin-status").val() };
+        },
+        onChange: refresh_summary,
+        emptyText: "No activities submitted yet."
     });
 
-
-    /* ======================================
-       APPROVE
-    ======================================= */
-
-    $(document).on(
-        'click',
-        '.approve_activity',
-        function(){
-
-            var id = $(this).data('id');
-
-            if(confirm(
-                "Are you sure you want to approve this activity?"
-            )){
-
-                start_load();
-
-                $.ajax({
-
-                    url:
-                        'ajax.php?action=update_activity_status',
-
-                    method:'POST',
-
-                    data:{
-
-                        id:id,
-
-                        status:'approved'
-
-                    },
-
-                    success:function(resp){
-
-                        if(resp == 1){
-
-                            alert_toast(
-                                "Activity successfully approved.",
-                                "success"
-                            );
-
-                            setTimeout(
-                                function(){
-
-                                    location.reload();
-
-                                },
-                                1000
-                            );
-
-                        }else{
-
-                            alert_toast(
-                                "Unable to update activity status.",
-                                "error"
-                            );
-
-                            end_load();
-
-                        }
-
-                    },
-
-                    error:function(){
-
-                        alert_toast(
-                            "An error occurred while processing the request.",
-                            "error"
-                        );
-
-                        end_load();
-
-                    }
-
-                });
-
-            }
-
-        }
-    );
-
-
-    /* ======================================
-       REJECT
-    ======================================= */
-
-    $(document).on(
-        'click',
-        '.reject_activity',
-        function(){
-
-            var id = $(this).data('id');
-
-            if(confirm(
-                "Are you sure you want to reject this activity?"
-            )){
-
-                start_load();
-
-                $.ajax({
-
-                    url:
-                        'ajax.php?action=update_activity_status',
-
-                    method:'POST',
-
-                    data:{
-
-                        id:id,
-
-                        status:'rejected'
-
-                    },
-
-                    success:function(resp){
-
-                        if(resp == 1){
-
-                            alert_toast(
-                                "Activity successfully rejected.",
-                                "success"
-                            );
-
-                            setTimeout(
-                                function(){
-
-                                    location.reload();
-
-                                },
-                                1000
-                            );
-
-                        }else{
-
-                            alert_toast(
-                                "Unable to update activity status.",
-                                "error"
-                            );
-
-                            end_load();
-
-                        }
-
-                    },
-
-                    error:function(){
-
-                        alert_toast(
-                            "An error occurred while processing the request.",
-                            "error"
-                        );
-
-                        end_load();
-
-                    }
-
-                });
-
-            }
-
-        }
-    );
-
-
-    /* ======================================
-       DELETE ACTIVITY
-    ======================================= */
-
-    $(document).on(
-        'click',
-        '.delete_activity',
-        function(){
-
-            var id = $(this).data('id');
-
-            if(!id){
-
-                alert_toast(
-                    "Invalid activity ID.",
-                    "error"
-                );
-
-                return;
-
-            }
-
-
-            if(confirm(
-                "Are you sure you want to delete this activity?\n\n" +
-                "This action cannot be undone."
-            )){
-
-                start_load();
-
-                $.ajax({
-
-                    url:
-                        'ajax.php?action=delete_activity_admin',
-
-                    method:'POST',
-
-                    data:{
-
-                        id:id
-
-                    },
-
-                    success:function(resp){
-
-                        if(resp == 1){
-
-                            alert_toast(
-                                "Activity successfully deleted.",
-                                "success"
-                            );
-
-                            setTimeout(
-                                function(){
-
-                                    location.reload();
-
-                                },
-                                1000
-                            );
-
-                        }else{
-
-                            alert_toast(
-                                "Unable to delete activity.",
-                                "error"
-                            );
-
-                            end_load();
-
-                        }
-
-                    },
-
-                    error:function(){
-
-                        alert_toast(
-                            "An error occurred while deleting the activity.",
-                            "error"
-                        );
-
-                        end_load();
-
-                    }
-
-                });
-
-            }
-
-        }
-    );
-
+    $("#admin-status").change(function(){
+        adminTable.reload();
+    });
 
 });
 
-
-/* ==========================================
-   ACTIVITY LIST AJAX
-========================================== */
-
-function load_activityadmin(){
+// Keeps the numbers at the top in step with the table after every change
+function refresh_summary(){
 
     $.ajax({
 
-        url:
-            "ajax.php?action=list_activityadmin",
+        url: "ajax.php?action=activity_counts",
+        dataType: "json",
 
-        success:function(resp){
+        success: function(resp){
 
-            $("#activity-listadmin")
-                .html(resp);
+            var all = resp.all;
 
-        },
-
-        error:function(){
-
-            console.log(
-                "Unable to load activities."
-            );
+            $("#stat-total").text(all.total);
+            $("#stat-pending, #stat-header-pending").text(all.pending);
+            $("#stat-approved").text(all.approved);
+            $("#stat-rejected").text(all.rejected);
 
         }
 

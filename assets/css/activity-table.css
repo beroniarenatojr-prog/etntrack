@@ -1,0 +1,317 @@
+/*
+ * Shared activities table (see assets/js/activity-table.js)
+ * Used on the admin Activities page and the coordinator's My / All Activities tabs.
+ */
+
+table.at-table{
+    width:100% !important;
+    margin:0 !important;
+    font-size:14px;
+}
+
+table.at-table thead th{
+    background:#198754;
+    color:#fff;
+    border:none;
+    font-weight:600;
+    padding:14px 12px;
+    white-space:nowrap;
+}
+
+table.at-table thead th:first-child{ border-top-left-radius:12px; }
+table.at-table thead th:last-child{ border-top-right-radius:12px; }
+
+/* DataTables sort arrows on the green header */
+table.at-table thead .sorting:before,
+table.at-table thead .sorting:after,
+table.at-table thead .sorting_asc:before,
+table.at-table thead .sorting_asc:after,
+table.at-table thead .sorting_desc:before,
+table.at-table thead .sorting_desc:after{
+    color:#fff;
+}
+
+table.at-table tbody td{
+    vertical-align:middle;
+    padding:12px;
+    border-top:1px solid #eef2ef;
+}
+
+table.at-table tbody tr:hover{
+    background:#f4fbf6;
+}
+
+.at-select{
+    width:36px;
+    text-align:center;
+}
+
+.at-select input,
+.at-check-all{
+    width:16px;
+    height:16px;
+    cursor:pointer;
+    vertical-align:middle;
+}
+
+.at-ref{
+    color:#6c757d;
+    font-family:SFMono-Regular, Consolas, monospace;
+    font-size:13px;
+    white-space:nowrap;
+}
+
+.at-title{
+    font-weight:600;
+    color:#27362e;
+}
+
+.at-muted{
+    color:#98a2ad;
+    font-size:12px;
+}
+
+/* Status badges */
+
+.at-status{
+    display:inline-block;
+    padding:4px 12px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:700;
+    white-space:nowrap;
+}
+
+.at-status.approved{ background:#d1f7dd; color:#198754; }
+.at-status.pending{ background:#fff3cd; color:#b45309; }
+.at-status.revision{ background:#ffe5d0; color:#c2410c; }
+.at-status.rejected{ background:#fde2e2; color:#dc3545; }
+
+.at-note-icon{
+    color:#fd7e14;
+    cursor:help;
+}
+
+/* ⋮ button and its menu */
+
+.at-menu-btn{
+    width:34px;
+    height:34px;
+    border:none;
+    border-radius:50%;
+    background:transparent;
+    color:#6c757d;
+    transition:.2s;
+}
+
+.at-menu-btn:hover,
+.at-menu-btn:focus{
+    background:#eef2ef;
+    color:#198754;
+    outline:none;
+}
+
+.at-menu{
+    position:fixed;
+    z-index:2000;
+    min-width:190px;
+    padding:6px 0;
+    border:none;
+    border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+}
+
+.at-menu .dropdown-item{
+    padding:8px 16px;
+    font-size:14px;
+}
+
+/* Bulk action bar */
+
+.at-bulk{
+    display:none;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+    padding:10px 14px;
+    border-radius:12px;
+    background:#eef8f2;
+    border:1px solid #cfe9da;
+}
+
+.at-bulk.is-active{
+    display:flex;
+}
+
+.at-bulk-count{
+    font-weight:700;
+    color:#198754;
+    margin-right:auto;
+}
+
+.at-bulk .btn{
+    border-radius:8px;
+    font-weight:600;
+}
+
+/* Footer: rows per page, "Showing x to y", pagination */
+
+.at-footer{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding-top:15px;
+}
+
+.at-footer .dataTables_length,
+.at-footer .dataTables_info,
+.at-footer .dataTables_paginate{
+    padding:0 !important;
+    margin:0 !important;
+    font-size:13px;
+    color:#6c757d;
+}
+
+.at-footer .dataTables_length select{
+    border-radius:8px;
+}
+
+.at-footer .page-item.active .page-link{
+    background:#198754;
+    border-color:#198754;
+}
+
+.at-footer .page-link{
+    color:#198754;
+}
+
+/* View popup */
+
+.at-view{
+    text-align:left;
+}
+
+.at-view-image{
+    display:block;
+    width:100%;
+    max-height:260px;
+    object-fit:cover;
+    border-radius:12px;
+    margin-bottom:15px;
+    cursor:zoom-in;
+}
+
+/* Strip of all the pictures under the first one (details popup) */
+.at-view-thumbs{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    margin:-5px 0 15px;
+    padding-bottom:4px;
+}
+
+.at-view-thumb{
+    flex:0 0 64px;
+    width:64px;
+    height:64px;
+    object-fit:cover;
+    border-radius:8px;
+    border:2px solid transparent;
+    cursor:zoom-in;
+}
+
+.at-view-thumb:hover{
+    border-color:#198754;
+}
+
+/* One picture on its own, whole, with ‹ › for the others */
+.at-gallery{
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.at-gallery-image{
+    display:block;
+    width:auto;
+    max-width:100%;
+    max-height:78vh;
+    margin:0 auto;
+    object-fit:contain;
+    border-radius:10px;
+}
+
+.at-gallery-prev,
+.at-gallery-next{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    width:44px;
+    height:44px;
+    border:none;
+    border-radius:50%;
+    background:rgba(0,0,0,.55);
+    color:#fff;
+    font-size:28px;
+    line-height:40px;
+    cursor:pointer;
+}
+
+.at-gallery-prev{ left:8px; }
+.at-gallery-next{ right:8px; }
+
+.at-gallery-prev:hover,
+.at-gallery-next:hover{
+    background:rgba(0,0,0,.75);
+}
+
+.at-gallery-count{
+    margin-top:8px;
+    color:#6c757d;
+    font-size:13px;
+    font-weight:600;
+}
+
+.at-view-note{
+    margin-bottom:12px;
+    padding:10px 14px;
+    border-radius:10px;
+    background:#ffe5d0;
+    color:#9a3412;
+    font-size:14px;
+}
+
+.at-view-details{
+    width:100%;
+    font-size:14px;
+}
+
+.at-view-details th{
+    width:130px;
+    padding:6px 10px 6px 0;
+    color:#6c757d;
+    font-weight:600;
+    vertical-align:top;
+}
+
+.at-view-details td{
+    padding:6px 0;
+    color:#27362e;
+    word-break:break-word;
+}
+
+@media(max-width:768px){
+
+    table.at-table{
+        font-size:13px;
+    }
+
+    .at-footer{
+        justify-content:center;
+    }
+
+}
