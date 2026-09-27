@@ -1,0 +1,1829 @@
+
+<?php
+$faculty_id = $_SESSION['login_id'];
+?>
+
+<style>
+
+/* =========================================================
+   GENERAL
+========================================================= */
+
+body{
+    background:#f4f8f6;
+}
+
+
+/* =========================================================
+   ACTIVITY CARD
+========================================================= */
+
+.activity-card{
+    border:none;
+    border-radius:22px;
+    background:#fff;
+    box-shadow:0 10px 30px rgba(0,0,0,.05);
+    overflow:hidden;
+}
+
+
+/* =========================================================
+   CREATE ACTIVITY HEADER
+========================================================= */
+
+.card-header-green{
+    background:#fff;
+    padding:28px;
+    border-bottom:1px solid #edf2f7;
+}
+
+.card-header-green h4{
+    color:#1b1b1b;
+    font-size:24px;
+    font-weight:700;
+    margin-bottom:5px;
+}
+
+.card-header-green p{
+    color:#8d98a5;
+    margin:0;
+    font-size:14px;
+}
+
+.card-header-green i{
+    width:50px;
+    height:50px;
+    border-radius:15px;
+    background:#e9f8ef;
+    color:#19a75d;
+    display:inline-flex;
+    justify-content:center;
+    align-items:center;
+    margin-right:12px;
+    font-size:22px;
+}
+
+.card-body{
+    padding:30px;
+}
+
+
+/* =========================================================
+   FORM LABEL
+========================================================= */
+
+.form-group label{
+    font-size:13px;
+    font-weight:700;
+    color:#374151;
+    margin-bottom:8px;
+}
+
+
+/* =========================================================
+   FORM INPUT
+========================================================= */
+
+.form-control{
+    height:48px;
+    border-radius:12px;
+    border:1px solid #e5e7eb;
+    box-shadow:none;
+    transition:.3s;
+}
+
+textarea.form-control{
+    height:auto;
+    resize:none;
+}
+
+.form-control:focus{
+    border-color:#1ea65b;
+    box-shadow:0 0 0 4px rgba(30,166,91,.12);
+}
+
+
+/* =========================================================
+   UPLOAD BOX
+========================================================= */
+
+.upload-box{
+    height:220px;
+    border:2px dashed #1ea65b;
+    border-radius:18px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+    transition:.3s;
+    background:#fcfffd;
+}
+
+.upload-box:hover{
+    background:#f2fff6;
+}
+
+.upload-box.dragging{
+    background:#e8fff0;
+    border-color:#198754;
+    transform:scale(1.02);
+}
+
+.upload-box i{
+    font-size:48px;
+    color:#1ea65b;
+    margin-bottom:12px;
+}
+
+.upload-box input{
+    display:none;
+}
+
+
+/* =========================================================
+   PREVIEW
+========================================================= */
+
+.preview-box{
+    height:220px;
+    border:2px dashed #dfe6eb;
+    border-radius:18px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    position:relative;
+    overflow:hidden;
+    background:white;
+}
+
+.preview-box img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:none;
+}
+
+.preview-placeholder{
+    text-align:center;
+    color:#9aa4af;
+}
+
+.preview-placeholder i{
+    font-size:50px;
+    margin-bottom:10px;
+}
+
+#remove-image{
+    position:absolute;
+    bottom:10px;
+    right:10px;
+    display:none;
+    border-radius:20px;
+}
+
+
+/* =========================================================
+   SAVE BUTTON
+========================================================= */
+
+.btn-save{
+    height:52px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(90deg,#1fa15d,#14894d);
+    color:white;
+    font-size:16px;
+    font-weight:600;
+    transition:.3s;
+}
+
+.btn-save:hover{
+    transform:translateY(-2px);
+    box-shadow:0 12px 20px rgba(25,135,84,.25);
+    color:white;
+}
+
+
+/* =========================================================
+   STATISTICS
+========================================================= */
+
+.stats-card{
+    background:#fff;
+    border-radius:18px;
+    padding:20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    box-shadow:0 8px 20px rgba(0,0,0,.06);
+    transition:.3s;
+    height:110px;
+}
+
+.stats-card:hover{
+    transform:translateY(-5px);
+    box-shadow:0 15px 30px rgba(0,0,0,.12);
+}
+
+.stats-icon{
+    width:58px;
+    height:58px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+}
+
+.stats-icon.green{
+    background:#e8f8ef;
+    color:#1a9c5b;
+}
+
+.stats-icon.success{
+    background:#e8f8ef;
+    color:#28a745;
+}
+
+.stats-icon.warning{
+    background:#fff5de;
+    color:#f0ad4e;
+}
+
+.stats-icon.danger{
+    background:#ffeaea;
+    color:#dc3545;
+}
+
+.stats-content{
+    flex:1;
+    margin-left:15px;
+}
+
+.stats-content small{
+    color:#999;
+    display:block;
+    font-weight:600;
+}
+
+.stats-content h3{
+    margin:4px 0;
+    font-size:30px;
+    font-weight:700;
+    color:#222;
+}
+
+.stats-content span{
+    font-size:12px;
+    color:#999;
+}
+
+.stats-chart{
+    font-size:28px;
+    opacity:.7;
+}
+
+
+/* =========================================================
+   MY ACTIVITIES HEADER
+========================================================= */
+
+.modern-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:25px;
+    border-bottom:1px solid #edf1f7;
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+}
+
+.header-icon{
+    width:50px;
+    height:50px;
+    border-radius:15px;
+    background:#eaf8ef;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#19a85d;
+    font-size:22px;
+    margin-right:15px;
+}
+
+.header-left h4{
+    margin:0;
+    font-size:24px;
+    font-weight:700;
+}
+
+.header-left p{
+    margin:0;
+    color:#9aa4af;
+    font-size:13px;
+}
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.search-box{
+    display:flex;
+    align-items:center;
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:0 15px;
+    height:45px;
+}
+
+.search-box i{
+    color:#999;
+}
+
+.search-box input{
+    border:none;
+    outline:none;
+    padding-left:10px;
+    width:230px;
+}
+
+
+/* =========================================================
+   FILTER
+========================================================= */
+
+.filter-btn{
+    height:45px;
+    padding:0 20px;
+    border-radius:12px;
+    background:white;
+    border:1px solid #e5e7eb;
+    font-weight:600;
+}
+
+
+/* =========================================================
+   ACTIVITY LIST
+========================================================= */
+
+.activity-list{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+}
+
+
+/* =========================================================
+   LONG HORIZONTAL ACTIVITY CARD
+========================================================= */
+
+.activity-item{
+    width:100%;
+    min-height:145px;
+
+    display:flex;
+    align-items:center;
+
+    background:#fff;
+
+    border:1px solid #e3e8eb;
+    border-radius:14px;
+
+    padding:15px 18px;
+
+    transition:.25s ease;
+}
+
+.activity-item:hover{
+    border-color:#cfd8d3;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+}
+
+
+/* =========================================================
+   SMALL IMAGE
+========================================================= */
+
+.activity-item-image{
+    width:85px;
+    min-width:85px;
+    height:85px;
+
+    margin-right:20px;
+
+    border-radius:10px;
+
+    overflow:hidden;
+
+    flex-shrink:0;
+
+    background:#f4f7f5;
+}
+
+.activity-item-image img{
+    width:100%;
+    height:100%;
+
+    display:block;
+
+    object-fit:cover;
+}
+
+
+/* NO IMAGE */
+
+.activity-no-image{
+    width:100%;
+    height:100%;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    flex-direction:column;
+
+    color:#a5adb5;
+
+    background:#f6f8f7;
+
+    font-size:10px;
+}
+
+.activity-no-image i{
+    font-size:24px;
+    margin-bottom:4px;
+}
+
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.activity-item-content{
+    flex:1;
+    min-width:0;
+}
+
+
+/* =========================================================
+   TITLE + STATUS
+========================================================= */
+
+.activity-item-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    gap:15px;
+
+    margin-bottom:5px;
+}
+
+.activity-item-title{
+    margin:0;
+
+    font-size:17px;
+    font-weight:700;
+
+    color:#222;
+
+    line-height:1.3;
+}
+
+
+/* =========================================================
+   PURPOSE
+========================================================= */
+
+.activity-item-purpose{
+    font-size:12px;
+
+    color:#8b949c;
+
+    margin-bottom:8px;
+
+    line-height:1.4;
+}
+
+
+/* =========================================================
+   DATE + VENUE
+========================================================= */
+
+.activity-details{
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:6px 25px;
+
+    margin-bottom:7px;
+}
+
+.activity-detail{
+    font-size:12px;
+
+    color:#555;
+}
+
+.activity-detail i{
+    color:#198754;
+
+    margin-right:5px;
+}
+
+
+/* =========================================================
+   DESCRIPTION
+========================================================= */
+
+.activity-description{
+    font-size:12px;
+
+    color:#777;
+
+    line-height:1.4;
+
+    margin-bottom:8px;
+
+    max-width:95%;
+}
+
+.activity-description-label{
+    font-weight:700;
+
+    color:#555;
+
+    margin-right:4px;
+}
+
+.activity-description-text{
+    color:#777;
+}
+
+
+/* =========================================================
+   BOTTOM
+========================================================= */
+
+.activity-item-bottom{
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    border-top:1px solid #f0f2f3;
+
+    padding-top:7px;
+
+    margin-top:6px;
+}
+
+.activity-submitted{
+    font-size:10px;
+
+    color:#aaa;
+}
+
+
+/* =========================================================
+   STATUS BADGES
+========================================================= */
+
+.activity-badge{
+    display:inline-block;
+
+    padding:5px 11px;
+
+    border-radius:20px;
+
+    font-size:10px;
+
+    font-weight:600;
+
+    white-space:nowrap;
+}
+
+.activity-badge.pending{
+    background:#fff5d9;
+
+    color:#d99500;
+}
+
+.activity-badge.approved{
+    background:#e8f8ef;
+
+    color:#198754;
+}
+
+.activity-badge.rejected{
+    background:#ffeaea;
+
+    color:#dc3545;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.activity-actions{
+    display:flex;
+
+    gap:5px;
+}
+
+.activity-action{
+    width:32px;
+    height:32px;
+
+    display:inline-flex;
+
+    align-items:center;
+    justify-content:center;
+
+    border-radius:8px;
+
+    text-decoration:none;
+
+    font-size:12px;
+
+    transition:.2s;
+}
+
+.activity-action:hover{
+    transform:translateY(-1px);
+}
+
+
+/* VIEW */
+
+.activity-view{
+    background:#eaf8ef;
+
+    color:#198754;
+}
+
+.activity-view:hover{
+    background:#198754;
+
+    color:#fff;
+}
+
+
+/* EDIT */
+
+.activity-edit{
+    background:#fff5da;
+
+    color:#d89b00;
+}
+
+.activity-edit:hover{
+    background:#d89b00;
+
+    color:#fff;
+}
+
+
+/* DELETE */
+
+.activity-delete{
+    background:#ffeaea;
+
+    color:#dc3545;
+
+    border:none;
+}
+
+.activity-delete:hover{
+    background:#dc3545;
+
+    color:#fff;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.no-activities{
+    text-align:center;
+
+    padding:60px 20px;
+
+    color:#9aa4af;
+}
+
+.no-activities i{
+    font-size:45px;
+
+    margin-bottom:15px;
+}
+
+.no-activities h5{
+    color:#555;
+
+    font-weight:600;
+}
+
+.no-activities p{
+    font-size:13px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media(max-width:1100px){
+
+    .header-right{
+        gap:8px;
+    }
+
+    .search-box input{
+        width:170px;
+    }
+
+}
+
+
+@media(max-width:767px){
+
+    .modern-header{
+        flex-direction:column;
+
+        align-items:flex-start;
+
+        gap:15px;
+    }
+
+    .header-right{
+        width:100%;
+    }
+
+    .search-box{
+        flex:1;
+    }
+
+    .search-box input{
+        width:100%;
+    }
+
+    .activity-item{
+        align-items:flex-start;
+
+        padding:13px;
+    }
+
+    .activity-item-image{
+        width:70px;
+        min-width:70px;
+        height:70px;
+
+        margin-right:12px;
+    }
+
+    .activity-item-title{
+        font-size:15px;
+    }
+
+    .activity-item-top{
+        align-items:flex-start;
+
+        flex-direction:column;
+
+        gap:5px;
+    }
+
+    .activity-details{
+        display:block;
+    }
+
+    .activity-detail{
+        margin-bottom:4px;
+    }
+
+    .activity-description{
+        max-width:100%;
+    }
+
+    .activity-item-bottom{
+        align-items:flex-start;
+
+        flex-direction:column;
+
+        gap:8px;
+    }
+
+}
+
+
+/* =========================================================
+   EXTRA SMALL
+========================================================= */
+
+@media(max-width:480px){
+
+    .activity-item{
+        display:block;
+    }
+
+    .activity-item-image{
+        margin-right:0;
+        margin-bottom:12px;
+    }
+
+}
+
+</style>
+
+
+<div class="container-fluid">
+
+
+<!-- =========================================================
+     DASHBOARD SUMMARY
+========================================================= -->
+
+<div class="row mb-4">
+
+
+    <div class="col-lg-3 col-md-6 mb-3">
+
+        <div class="stats-card">
+
+            <div class="stats-icon green">
+                <i class="fa fa-calendar"></i>
+            </div>
+
+            <div class="stats-content">
+
+                <small>Total Activities</small>
+
+                <h3 id="total_activity">12</h3>
+
+                <span>All submitted activities</span>
+
+            </div>
+
+            <div class="stats-chart text-success">
+
+                <i class="fa fa-line-chart"></i>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-3 col-md-6 mb-3">
+
+        <div class="stats-card">
+
+            <div class="stats-icon success">
+
+                <i class="fa fa-check-circle"></i>
+
+            </div>
+
+            <div class="stats-content">
+
+                <small>Approved</small>
+
+                <h3 id="approved_activity">9</h3>
+
+                <span>75% of total</span>
+
+            </div>
+
+            <div class="stats-chart text-success">
+
+                <i class="fa fa-line-chart"></i>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-3 col-md-6 mb-3">
+
+        <div class="stats-card">
+
+            <div class="stats-icon warning">
+
+                <i class="fa fa-clock-o"></i>
+
+            </div>
+
+            <div class="stats-content">
+
+                <small>Pending</small>
+
+                <h3 id="pending_activity">2</h3>
+
+                <span>16.7% of total</span>
+
+            </div>
+
+            <div class="stats-chart text-warning">
+
+                <i class="fa fa-line-chart"></i>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-3 col-md-6 mb-3">
+
+        <div class="stats-card">
+
+            <div class="stats-icon danger">
+
+                <i class="fa fa-times-circle"></i>
+
+            </div>
+
+            <div class="stats-content">
+
+                <small>Rejected</small>
+
+                <h3 id="rejected_activity">1</h3>
+
+                <span>8.3% of total</span>
+
+            </div>
+
+            <div class="stats-chart text-danger">
+
+                <i class="fa fa-line-chart"></i>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+
+<!-- =========================================================
+     MAIN ROW
+========================================================= -->
+
+<div class="row">
+
+
+<!-- =========================================================
+     CREATE ACTIVITY
+========================================================= -->
+
+<div class="col-md-4">
+
+    <div class="card activity-card">
+
+
+        <div class="card-header-green">
+
+            <h4>
+
+                <i class="fa fa-calendar-plus mr-2"></i>
+
+                Create Activity
+
+            </h4>
+
+            <p>
+                Submit extension activities for approval.
+            </p>
+
+        </div>
+
+
+        <div class="card-body">
+
+
+            <form
+                id="activity-form"
+                enctype="multipart/form-data">
+
+
+                <!-- IMAGE -->
+
+                <div class="form-group">
+
+                    <label>
+
+                        Upload Image
+
+                        <small class="text-muted">
+                            (Optional)
+                        </small>
+
+                    </label>
+
+
+                    <div class="row">
+
+
+                        <div class="col-md-6">
+
+                            <label
+                                class="upload-box"
+                                id="drop-area">
+
+
+                                <i class="fa fa-cloud-upload"></i>
+
+
+                                <h6>
+                                    Drag & Drop
+                                </h6>
+
+
+                                <small>
+                                    or click to browse
+                                </small>
+
+
+                                <input
+                                    type="file"
+                                    id="activity_image"
+                                    name="image"
+                                    accept="image/*">
+
+
+                            </label>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <div class="preview-box">
+
+
+                                <img
+                                    id="preview-image"
+                                    src=""
+                                    alt="Preview">
+
+
+                                <div
+                                    class="preview-placeholder"
+                                    id="preview-placeholder">
+
+
+                                    <i class="fa fa-image"></i>
+
+
+                                    <p>
+                                        No image selected
+                                    </p>
+
+
+                                </div>
+
+
+                                <button
+                                    type="button"
+                                    id="remove-image"
+                                    class="btn btn-danger btn-sm">
+
+
+                                    <i class="fa fa-times"></i>
+
+                                    Remove
+
+
+                                </button>
+
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+
+                <!-- ACTIVITY NAME -->
+
+                <div class="form-group">
+
+                    <label>
+                        Activity Name
+                    </label>
+
+
+                    <textarea
+                        name="activity_name"
+                        class="form-control"
+                        rows="3"
+                        required></textarea>
+
+                </div>
+
+
+                <!-- PURPOSE -->
+
+                <div class="form-group">
+
+                    <label>
+                        Purpose
+                    </label>
+
+
+                    <textarea
+                        name="purpose"
+                        class="form-control"
+                        rows="3"
+                        required></textarea>
+
+                </div>
+
+
+                <!-- DESCRIPTION -->
+
+                <div class="form-group">
+
+                    <label>
+                        Description
+                    </label>
+
+
+                    <textarea
+                        name="description"
+                        class="form-control"
+                        rows="4"></textarea>
+
+                </div>
+
+
+                <!-- DATE -->
+
+                <div class="form-group">
+
+                    <label>
+                        Activity Date
+                    </label>
+
+
+                    <input
+                        type="date"
+                        name="activity_date"
+                        class="form-control"
+                        required>
+
+                </div>
+
+
+                <!-- VENUE -->
+
+                <div class="form-group">
+
+                    <label>
+                        Venue
+                    </label>
+
+
+                    <input
+                        type="text"
+                        name="venue"
+                        class="form-control">
+
+                </div>
+
+
+                <!-- SUBMIT -->
+
+                <button
+                    type="submit"
+                    class="btn btn-save btn-block">
+
+
+                    <i class="fa fa-paper-plane mr-2"></i>
+
+                    Submit Activity
+
+
+                </button>
+
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- =========================================================
+     MY ACTIVITIES
+========================================================= -->
+
+<div class="col-md-8">
+
+    <div class="card activity-card">
+
+
+        <!-- HEADER -->
+
+        <div class="modern-header">
+
+
+            <div class="header-left">
+
+
+                <div class="header-icon">
+
+                    <i class="fa fa-list"></i>
+
+                </div>
+
+
+                <div>
+
+                    <h4>
+                        My Activities
+                    </h4>
+
+                    <p>
+                        Monitor the status of your submitted activities.
+                    </p>
+
+                </div>
+
+
+            </div>
+
+
+
+            <div class="header-right">
+
+
+                <div class="search-box">
+
+                    <i class="fa fa-search"></i>
+
+                    <input
+                        type="text"
+                        id="activity-search"
+                        placeholder="Search activities...">
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="filter-btn">
+
+                    <i class="fa fa-filter"></i>
+
+                    Filter
+
+                </button>
+
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- ACTIVITY LIST -->
+
+        <div class="card-body">
+
+
+            <div
+                id="activity-list"
+                class="activity-list">
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+</div>
+
+</div>
+
+
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
+<script>
+
+
+/* =========================================================
+   DOCUMENT READY
+========================================================= */
+
+$(document).ready(function(){
+
+
+    /* LOAD ACTIVITIES */
+
+    load_activity();
+
+
+
+    /* =====================================================
+       SUBMIT ACTIVITY
+    ===================================================== */
+
+    $("#activity-form").submit(function(e){
+
+        e.preventDefault();
+
+
+        var formData = new FormData(this);
+
+
+        $.ajax({
+
+            url:"ajax.php?action=save_activity",
+
+            type:"POST",
+
+            data:formData,
+
+            processData:false,
+
+            contentType:false,
+
+
+            success:function(resp){
+
+
+                if($.trim(resp)=="1"){
+
+
+                    Swal.fire({
+
+                        icon:"success",
+
+                        title:"Success!",
+
+                        text:"Activity submitted successfully.",
+
+                        timer:1800,
+
+                        showConfirmButton:false
+
+                    });
+
+
+                    $("#activity-form")[0].reset();
+
+
+                    $("#preview-image")
+                        .attr("src","")
+                        .hide();
+
+
+                    $("#preview-placeholder")
+                        .show();
+
+
+                    $("#remove-image")
+                        .hide();
+
+
+                    $("#activity_image")
+                        .val("");
+
+
+                    load_activity();
+
+
+                }else{
+
+
+                    Swal.fire({
+
+                        icon:"error",
+
+                        title:"Upload Failed",
+
+                        text:resp
+
+                    });
+
+                }
+
+            },
+
+
+            error:function(xhr){
+
+                console.log(xhr.responseText);
+
+
+                Swal.fire({
+
+                    icon:"error",
+
+                    title:"Server Error",
+
+                    text:"Unable to submit activity."
+
+                });
+
+            }
+
+        });
+
+    });
+
+
+});
+
+
+
+/* =========================================================
+   IMAGE PREVIEW
+========================================================= */
+
+function previewFile(file){
+
+
+    if(!file){
+
+        return;
+
+    }
+
+
+    if(!file.type.startsWith("image/")){
+
+
+        alert("Please select an image.");
+
+        return;
+
+    }
+
+
+    const reader = new FileReader();
+
+
+    reader.onload = function(e){
+
+
+        $("#preview-image")
+            .attr("src",e.target.result)
+            .fadeIn();
+
+
+        $("#preview-placeholder")
+            .hide();
+
+
+        $("#remove-image")
+            .show();
+
+
+    };
+
+
+    reader.readAsDataURL(file);
+
+}
+
+
+
+/* =========================================================
+   NORMAL BROWSE
+========================================================= */
+
+$("#activity_image").on("change",function(){
+
+    previewFile(this.files[0]);
+
+});
+
+
+
+/* =========================================================
+   REMOVE IMAGE
+========================================================= */
+
+$("#remove-image").click(function(){
+
+
+    $("#activity_image").val("");
+
+
+    $("#preview-image")
+        .attr("src","")
+        .hide();
+
+
+    $("#preview-placeholder")
+        .show();
+
+
+    $(this).hide();
+
+
+});
+
+
+
+/* =========================================================
+   DRAG & DROP
+========================================================= */
+
+const dropArea = document.getElementById("drop-area");
+
+
+["dragenter","dragover"].forEach(function(eventName){
+
+
+    dropArea.addEventListener(
+        eventName,
+        function(e){
+
+            e.preventDefault();
+
+            dropArea.classList.add("dragging");
+
+        }
+    );
+
+
+});
+
+
+["dragleave","drop"].forEach(function(eventName){
+
+
+    dropArea.addEventListener(
+        eventName,
+        function(e){
+
+            e.preventDefault();
+
+            dropArea.classList.remove("dragging");
+
+        }
+    );
+
+
+});
+
+
+dropArea.addEventListener("drop",function(e){
+
+
+    const files = e.dataTransfer.files;
+
+
+    if(files.length){
+
+
+        $("#activity_image")[0].files = files;
+
+        previewFile(files[0]);
+
+
+    }
+
+
+});
+
+
+
+/* =========================================================
+   LOAD ACTIVITIES
+========================================================= */
+
+function load_activity(){
+
+
+    $.ajax({
+
+        url:"ajax.php?action=list_activity",
+
+
+        success:function(resp){
+
+
+            $("#activity-list").html(resp);
+
+
+        },
+
+
+        error:function(xhr){
+
+
+            console.log(xhr.responseText);
+
+
+            $("#activity-list").html(`
+
+                <div class="no-activities">
+
+                    <i class="fa fa-exclamation-circle"></i>
+
+                    <h5>
+                        Unable to load activities
+                    </h5>
+
+                    <p>
+                        Please try again.
+                    </p>
+
+                </div>
+
+            `);
+
+
+        }
+
+    });
+
+
+}
+
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+$(document).on(
+    "keyup",
+    "#activity-search",
+    function(){
+
+        var value = $(this)
+            .val()
+            .toLowerCase();
+
+
+        $(".activity-item").filter(function(){
+
+
+            $(this).toggle(
+
+                $(this)
+                    .text()
+                    .toLowerCase()
+                    .indexOf(value) > -1
+
+            );
+
+
+        });
+
+
+    }
+);
+
+
+
+/* =========================================================
+   DELETE ACTIVITY
+========================================================= */
+
+function delete_activity(id){
+
+
+    Swal.fire({
+
+        title:'Delete Activity?',
+
+        text:'This action cannot be undone.',
+
+        icon:'warning',
+
+        showCancelButton:true,
+
+        confirmButtonColor:'#dc3545',
+
+        cancelButtonColor:'#6c757d',
+
+        confirmButtonText:'Delete',
+
+        cancelButtonText:'Cancel'
+
+    }).then((result)=>{
+
+
+        if(result.isConfirmed){
+
+
+            $.ajax({
+
+                url:"ajax.php?action=delete_activity&id="+id,
+
+
+                success:function(resp){
+
+
+                    if($.trim(resp)=="1"){
+
+
+                        Swal.fire({
+
+                            icon:'success',
+
+                            title:'Deleted!',
+
+                            text:'Activity deleted successfully.',
+
+                            timer:1800,
+
+                            showConfirmButton:false
+
+                        });
+
+
+                        load_activity();
+
+
+                    }else{
+
+
+                        Swal.fire({
+
+                            icon:'error',
+
+                            title:'Delete Failed',
+
+                            text:resp
+
+                        });
+
+                    }
+
+                },
+
+
+                error:function(){
+
+
+                    Swal.fire({
+
+                        icon:'error',
+
+                        title:'Server Error',
+
+                        text:'Unable to delete the activity.'
+
+                    });
+
+                }
+
+            });
+
+
+        }
+
+
+    });
+
+
+}
+
+</script>
+
