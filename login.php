@@ -384,6 +384,24 @@ if (isset($_SESSION['login_id'])) {
             padding: 18px;
         }
 
+        .left-panel {
+            padding: 38px 28px;
+        }
+
+        .right-panel {
+            padding: 38px 32px 42px;
+        }
+
+        .portal-title {
+            font-size: 30px;
+        }
+
+        .system-title {
+            font-size: 36px;
+        }
+    }
+
+    @media (max-width: 767px) {
         .portal-container {
             flex-direction: column;
             min-height: auto;
@@ -394,20 +412,8 @@ if (isset($_SESSION['login_id'])) {
             width: 100%;
         }
 
-        .left-panel {
-            padding: 38px 28px;
-        }
-
         .right-panel {
             padding: 38px 28px 42px;
-        }
-
-        .portal-title {
-            font-size: 30px;
-        }
-
-        .system-title {
-            font-size: 36px;
         }
     }
 
