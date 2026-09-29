@@ -674,47 +674,6 @@ $q_arr = array();
 
                     </div>
 
-
-                    <!-- RATING INFO -->
-
-                    <div class="rating-info">
-
-                        <div class="rating-info-title">
-                            <i class="fas fa-star"></i>
-                            Rating Scale
-                        </div>
-
-                        <div class="rating-scale">
-
-                            <span>
-                                <b>5</b>
-                                Strongly Agree
-                            </span>
-
-                            <span>
-                                <b>4</b>
-                                Agree
-                            </span>
-
-                            <span>
-                                <b>3</b>
-                                Slightly Agree
-                            </span>
-
-                            <span>
-                                <b>2</b>
-                                Disagree
-                            </span>
-
-                            <span>
-                                <b>1</b>
-                                Strongly Disagree
-                            </span>
-
-                        </div>
-
-                    </div>
-
                 </form>
 
             </div>
@@ -1137,73 +1096,6 @@ $q_arr = array();
 
 .textarea-footer i{
     color:#10b981;
-}
-
-
-/* =====================================================
-   RATING INFO
-===================================================== */
-
-.rating-info{
-
-    background:#f0fdf4;
-
-    border:1px solid #d1fae5;
-
-    border-radius:14px;
-
-    padding:15px;
-}
-
-
-.rating-info-title{
-
-    color:#047857;
-
-    font-weight:700;
-
-    font-size:12px;
-
-    margin-bottom:10px;
-}
-
-
-.rating-info-title i{
-    margin-right:5px;
-}
-
-
-.rating-scale{
-
-    display:flex;
-
-    flex-wrap:wrap;
-
-    gap:7px;
-}
-
-
-.rating-scale span{
-
-    background:white;
-
-    border:1px solid #d1fae5;
-
-    border-radius:8px;
-
-    padding:5px 8px;
-
-    font-size:10px;
-
-    color:#6b7280;
-}
-
-
-.rating-scale b{
-
-    color:#047857;
-
-    margin-right:3px;
 }
 
 

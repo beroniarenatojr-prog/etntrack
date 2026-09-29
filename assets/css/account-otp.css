@@ -1,0 +1,125 @@
+/* Email verification dialog (assets/js/account-otp.js) */
+
+.otp-modal .modal-dialog {
+    max-width: 420px;
+    padding: 0 12px;
+}
+
+.otp-modal .modal-content {
+    position: relative;
+    border: none;
+    border-radius: 20px;
+    padding: 34px 28px 22px;
+    text-align: center;
+    box-shadow: 0 24px 70px rgba(17, 56, 97, 0.18);
+}
+
+.otp-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    border: none;
+    background: none;
+    font-size: 26px;
+    line-height: 1;
+    color: #9ca3af;
+    cursor: pointer;
+}
+
+.otp-close:hover {
+    color: #374151;
+}
+
+.otp-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 14px;
+    border-radius: 18px;
+    background: #ecfdf5;
+    color: #1d5b42;
+    font-size: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.otp-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #102a43;
+    margin-bottom: 8px;
+}
+
+.otp-text {
+    font-size: 14px;
+    color: #5f6f83;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    overflow-wrap: anywhere;
+}
+
+.otp-text b {
+    color: #102a43;
+}
+
+.otp-modal .otp-code {
+    height: 58px;
+    border: 1px solid #d7e1ec;
+    border-radius: 14px;
+    text-align: center;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 10px;
+    color: #102a43;
+}
+
+.otp-modal .otp-code:focus {
+    border-color: #1d5b42;
+    box-shadow: 0 0 0 0.2rem rgba(29, 91, 66, 0.12);
+}
+
+.otp-message {
+    min-height: 22px;
+    margin: 10px 0 14px;
+    font-size: 13px;
+    color: #5f6f83;
+}
+
+.otp-message.success {
+    color: #1d5b42;
+}
+
+.otp-message.error {
+    color: #dc2626;
+}
+
+.otp-verify {
+    width: 100%;
+    padding: 13px 16px;
+    border: none;
+    border-radius: 12px;
+    background: #1d5b42;
+    color: #fff;
+    font-weight: 700;
+}
+
+.otp-verify:hover:not(:disabled) {
+    color: #fff;
+    filter: brightness(1.08);
+}
+
+.otp-verify:disabled {
+    opacity: 0.7;
+}
+
+.otp-resend {
+    margin-top: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d5b42;
+}
+
+.otp-resend:disabled {
+    color: #9ca3af;
+    text-decoration: none;
+}

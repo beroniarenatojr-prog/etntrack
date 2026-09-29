@@ -1567,6 +1567,10 @@ $is_edit = isset($id) && !empty($id);
      JAVASCRIPT
 ========================== -->
 
+<link rel="stylesheet" href="assets/css/account-otp.css">
+
+<script src="assets/js/account-otp.js"></script>
+
 <script>
 
 $(document).ready(function(){
@@ -1838,6 +1842,30 @@ $(document).ready(function(){
         }
 
 
+        save_faculty('');
+
+    });
+
+
+    /* =========================
+       SAVE
+       New coordinators must verify their email first:
+       the server emails a code and AccountOtp asks for it.
+    ========================== */
+
+    AccountOtp.init(save_faculty);
+
+    function save_faculty(otp){
+
+        var data = new FormData(
+            $('#manage_faculty')[0]
+        );
+
+        if(otp){
+            data.append('otp', otp);
+        }
+
+
         start_load();
 
 
@@ -1845,9 +1873,7 @@ $(document).ready(function(){
 
             url:'ajax.php?action=save_faculty',
 
-            data:new FormData(
-                $(this)[0]
-            ),
+            data:data,
 
             cache:false,
 
@@ -1860,6 +1886,18 @@ $(document).ready(function(){
             type:'POST',
 
             success:function(resp){
+
+                if(AccountOtp.handle(resp, $('[name="email"]').val())){
+
+                    end_load();
+
+                    return;
+
+                }
+
+
+                AccountOtp.close();
+
 
                 if(resp == 1){
 
@@ -1931,6 +1969,9 @@ $(document).ready(function(){
 
             error:function(){
 
+                AccountOtp.close();
+
+
                 $('#msg').html(
                     "<div class='alert alert-danger'>" +
                     "<i class='fas fa-exclamation-circle'></i> " +
@@ -1945,7 +1986,7 @@ $(document).ready(function(){
 
         });
 
-    });
+    }
 
 });
 

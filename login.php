@@ -15,7 +15,8 @@ if (isset($_SESSION['login_id'])) {
     exit;
 }
 ?>
-
+<!DOCTYPE html>
+<html lang="en">
 <?php include 'header.php'; ?>
 
 <style>
@@ -34,6 +35,7 @@ if (isset($_SESSION['login_id'])) {
 
     body.login-page {
         min-height: 100vh;
+        height: auto; /* AdminLTE fixes this at 100vh, which squeezes the card on short screens */
         background: radial-gradient(circle at top left, rgba(79, 125, 227, 0.18) 0%, transparent 32%),
                     radial-gradient(circle at bottom right, rgba(29, 91, 66, 0.16) 0%, transparent 28%),
                     linear-gradient(180deg, #eaf4ff 0%, #f9fbff 100%);
@@ -47,7 +49,8 @@ if (isset($_SESSION['login_id'])) {
     .portal-container {
         width: 100%;
         max-width: 1120px;
-        min-height: 680px;
+        min-height: min(680px, calc(100vh - 60px));
+        flex-shrink: 0;
         background: rgba(255, 255, 255, 0.96);
         border-radius: 28px;
         overflow: hidden;
@@ -56,8 +59,11 @@ if (isset($_SESSION['login_id'])) {
         transition: transform 0.35s ease;
     }
 
-    .portal-container:hover {
-        transform: translateY(-4px);
+    /* Only lift on real mouse hover, not on touch taps */
+    @media (hover: hover) {
+        .portal-container:hover {
+            transform: translateY(-4px);
+        }
     }
 
     .left-panel {
@@ -304,7 +310,7 @@ if (isset($_SESSION['login_id'])) {
         border: 1px solid #d7e1ec;
         border-radius: 14px;
         padding: 16px 18px;
-        font-size: 15px;
+        font-size: 16px; /* below 16px, iPhones zoom the page in when a field is tapped */
         transition: border-color 0.25s ease, box-shadow 0.25s ease;
     }
 
@@ -412,8 +418,20 @@ if (isset($_SESSION['login_id'])) {
             width: 100%;
         }
 
+        .left-panel {
+            padding: 32px 28px;
+        }
+
         .right-panel {
             padding: 38px 28px 42px;
+        }
+
+        .brand {
+            margin-bottom: 28px;
+        }
+
+        .system-title {
+            margin-bottom: 0;
         }
     }
 
@@ -444,6 +462,74 @@ if (isset($_SESSION['login_id'])) {
 
         .portal-title {
             font-size: 28px;
+        }
+    }
+
+    @media (max-width: 420px) {
+        body.login-page {
+            padding: 12px;
+        }
+
+        .left-panel,
+        .right-panel {
+            padding: 26px 18px 30px;
+        }
+
+        .brand {
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .brand img {
+            width: 56px;
+            height: 56px;
+            padding: 8px;
+        }
+
+        .brand-text h2 {
+            font-size: 16px;
+        }
+
+        .system-title {
+            font-size: 30px;
+        }
+
+        .portal-title {
+            font-size: 25px;
+        }
+
+        .title-line {
+            margin-bottom: 20px;
+        }
+
+        .portal-subtitle {
+            font-size: 15px;
+            margin-bottom: 22px;
+        }
+
+        .access-btn {
+            padding: 15px 14px;
+            font-size: 14px;
+            gap: 10px;
+        }
+
+        #login-card {
+            margin-top: 20px;
+        }
+
+        .login-panel {
+            padding: 20px 16px;
+            border-radius: 20px;
+        }
+
+        .login-panel h3 {
+            font-size: 19px;
+        }
+
+        .notice-box {
+            margin-top: 20px;
+            padding: 14px 16px;
+            font-size: 13px;
         }
     }
 </style>

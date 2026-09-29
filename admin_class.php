@@ -63,7 +63,7 @@ Class Action {
 		extract($_POST);
 		$data = "";
 		foreach($_POST as $k => $v){
-			if(!in_array($k, array('id','cpass','password')) && !is_numeric($k)){
+			if(!in_array($k, array('id','cpass','password','otp')) && !is_numeric($k)){
 				if(empty($data)){
 					$data .= " $k='$v' ";
 				}else{
@@ -79,6 +79,12 @@ Class Action {
 		if($check > 0){
 			return 2;
 			exit;
+		}
+		if(empty($id)){
+			$verified = $this->require_email_otp('user', $email);
+			if($verified !== true){
+				return $verified;
+			}
 		}
 		if(isset($_FILES['img']) && $_FILES['img']['tmp_name'] != ''){
 			$fname = strtotime(date('y-m-d H:i')).'_'.$_FILES['img']['name'];
@@ -96,6 +102,71 @@ Class Action {
 			return 1;
 		}
 	}
+
+	// New accounts must prove they own their email: the first save emails a
+	// 6-digit code, the next save has to include that code as `otp`.
+	// Returns true once verified, otherwise the response for the page.
+	private function require_email_otp($scope, $email){
+		if(!isset($_SESSION['login_id']) || ($_SESSION['login_type'] ?? '') != 1){
+			return 'unauthorized';
+		}
+		$email = strtolower(trim($email));
+		$otp = trim($_POST['otp'] ?? '');
+		$pending = $_SESSION['account_otp'][$scope] ?? null;
+
+		if($otp === ''){
+			return $this->send_email_otp($scope, $email, $pending);
+		}
+		if(!$pending || $pending['email'] !== $email || time() > $pending['expires']){
+			unset($_SESSION['account_otp'][$scope]);
+			return 'otp_expired';
+		}
+		if(!password_verify($otp, $pending['hash'])){
+			$_SESSION['account_otp'][$scope]['attempts']++;
+			if($_SESSION['account_otp'][$scope]['attempts'] >= 5){
+				unset($_SESSION['account_otp'][$scope]);
+				return 'otp_locked';
+			}
+			return 'otp_invalid';
+		}
+		unset($_SESSION['account_otp'][$scope]);
+		return true;
+	}
+
+	private function send_email_otp($scope, $email, $pending){
+		// Within the resend cooldown the code already sent stays valid
+		if($pending && $pending['email'] === $email && time() - $pending['sent_at'] < 60){
+			return 'otp_wait|'.(60 - (time() - $pending['sent_at']));
+		}
+		$code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+		$html = "<div style=\"font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px\">"
+			."<h2 style=\"color:#1d5b42;margin:0 0 12px\">ExtenTrack Analytics</h2>"
+			."<p>Your email verification code is:</p>"
+			."<p style=\"font-size:32px;font-weight:bold;letter-spacing:8px;color:#1d5b42;margin:16px 0\">$code</p>"
+			."<p>Give this code to the ISU Ilagan Extension Office administrator to finish creating your account. It expires in 10 minutes.</p>"
+			."<p style=\"color:#6b7280;font-size:13px\">If you did not expect this email, you can ignore it.</p>"
+			."</div>";
+		$text = "Your ExtenTrack verification code is $code.\n\n"
+			."Give this code to the ISU Ilagan Extension Office administrator to finish creating your account. It expires in 10 minutes.\n\n"
+			."If you did not expect this email, you can ignore it.";
+
+		require_once __DIR__.'/mailer.php';
+		$sent = send_mail($email, 'Your ExtenTrack verification code', $html, $text);
+		if($sent !== true){
+			return 'mail_error|'.$sent;
+		}
+
+		$_SESSION['account_otp'][$scope] = array(
+			'email' => $email,
+			'hash' => password_hash($code, PASSWORD_DEFAULT),
+			'expires' => time() + 600,
+			'sent_at' => time(),
+			'attempts' => 0
+		);
+		return 'otp_sent';
+	}
+
 	function signup(){
 		extract($_POST);
 		$data = "";
@@ -1938,7 +2009,7 @@ function update_activity_status(){
 		extract($_POST);
 		$data = "";
 		foreach($_POST as $k => $v){
-			if(!in_array($k, array('id','cpass','password')) && !is_numeric($k)){
+			if(!in_array($k, array('id','cpass','password','otp')) && !is_numeric($k)){
 				if(empty($data)){
 					$data .= " $k='$v' ";
 				}else{
@@ -1959,6 +2030,12 @@ function update_activity_status(){
 		if($check > 0){
 			return 3;
 			exit;
+		}
+		if(empty($id)){
+			$verified = $this->require_email_otp('faculty', $email);
+			if($verified !== true){
+				return $verified;
+			}
 		}
 		if(isset($_FILES['img']) && $_FILES['img']['tmp_name'] != ''){
 			$fname = strtotime(date('y-m-d H:i')).'_'.$_FILES['img']['name'];

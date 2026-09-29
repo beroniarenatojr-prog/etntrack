@@ -1321,6 +1321,10 @@
      JAVASCRIPT
 ========================================================= -->
 
+<link rel="stylesheet" href="assets/css/account-otp.css">
+
+<script src="assets/js/account-otp.js"></script>
+
 <script>
 
 
@@ -1559,6 +1563,32 @@ $('#manage_user').submit(function(e){
 
 
 
+    save_user('');
+
+});
+
+
+
+/* =========================================
+   SAVE
+   New users must verify their email first:
+   the server emails a code and AccountOtp asks for it.
+========================================= */
+
+AccountOtp.init(save_user);
+
+function save_user(otp){
+
+    var data =
+        new FormData(
+            $('#manage_user')[0]
+        );
+
+    if(otp){
+        data.append('otp', otp);
+    }
+
+
     start_load();
 
 
@@ -1566,10 +1596,7 @@ $('#manage_user').submit(function(e){
 
         url:'ajax.php?action=save_user',
 
-        data:
-            new FormData(
-                $(this)[0]
-            ),
+        data:data,
 
         cache:false,
 
@@ -1583,6 +1610,18 @@ $('#manage_user').submit(function(e){
 
 
         success:function(resp){
+
+            if(AccountOtp.handle(resp, $('[name="email"]').val())){
+
+                end_load();
+
+                return;
+
+            }
+
+
+            AccountOtp.close();
+
 
             if(resp == 1){
 
@@ -1640,6 +1679,9 @@ $('#manage_user').submit(function(e){
 
         error:function(){
 
+            AccountOtp.close();
+
+
             $('#msg').html(
                 "<div class='alert alert-danger'>" +
                 "<i class='fas fa-exclamation-circle mr-2'></i>" +
@@ -1654,7 +1696,7 @@ $('#manage_user').submit(function(e){
 
     });
 
-});
+}
 
 
 
