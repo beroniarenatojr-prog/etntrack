@@ -78,251 +78,7 @@ $q_arr = array();
 
 <div class="row">
 
-    <!-- ================================================= -->
-    <!-- LEFT: QUESTION FORM -->
-    <!-- ================================================= -->
-
-    <div class="col-lg-4 col-md-5">
-
-        <div class="card modern-card form-card">
-
-            <div class="modern-header">
-
-                <div class="header-icon">
-                    <i class="fas fa-plus"></i>
-                </div>
-
-                <div>
-
-                    <h4>
-                        Add Question
-                    </h4>
-
-                    <p>
-                        Create a new evaluation question
-                    </p>
-
-                </div>
-
-            </div>
-
-
-            <div class="card-body">
-
-                <form action="" id="manage-question">
-
-                    <input
-                        type="hidden"
-                        name="academic_id"
-                        value="<?php echo isset($id) ? $id : ''; ?>"
-                    >
-
-                    <input
-                        type="hidden"
-                        name="id"
-                    >
-
-
-                    <!-- CRITERIA -->
-
-                    <div class="form-section">
-
-                        <label class="modern-label">
-
-                            <span>
-                                <i class="fas fa-layer-group"></i>
-                                Evaluation Criteria
-                            </span>
-
-                            <small>Required</small>
-
-                        </label>
-
-
-                        <select
-                            name="criteria_id"
-                            id="criteria_id"
-                            class="custom-select select2"
-                        >
-
-                            <option value=""></option>
-
-                            <?php
-
-                            $criteria = $conn->query(
-                                "SELECT * FROM criteria_list
-                                 ORDER BY abs(order_by) ASC"
-                            );
-
-                            while($row = $criteria->fetch_assoc()):
-
-                            ?>
-
-                                <option value="<?php echo $row['id']; ?>">
-
-                                    <?php echo htmlspecialchars($row['criteria']); ?>
-
-                                </option>
-
-                            <?php endwhile; ?>
-
-                        </select>
-
-                        <div class="field-hint">
-                            <i class="fas fa-info-circle"></i>
-                            Select the category where this question belongs.
-                        </div>
-
-                    </div>
-
-
-                    <!-- QUESTION -->
-
-                    <div class="form-section">
-
-                        <label class="modern-label">
-
-                            <span>
-                                <i class="fas fa-question-circle"></i>
-                                Question
-                            </span>
-
-                            <small>Required</small>
-
-                        </label>
-
-
-                        <textarea
-                            name="question"
-                            id="question"
-                            class="form-control modern-textarea"
-                            rows="6"
-                            maxlength="500"
-                            placeholder="Enter your evaluation question here..."
-                            required><?php echo isset($question) ? htmlspecialchars($question) : ''; ?></textarea>
-
-
-                        <div class="textarea-footer">
-
-                            <span>
-                                <i class="fas fa-pen"></i>
-                                Write a clear and measurable question.
-                            </span>
-
-                            <span id="questionCounter">
-                                0 / 500
-                            </span>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- RATING INFO -->
-
-                    <div class="rating-info">
-
-                        <div class="rating-info-title">
-                            <i class="fas fa-star"></i>
-                            Rating Scale
-                        </div>
-
-                        <div class="rating-scale">
-
-                            <span>
-                                <b>5</b>
-                                Excellent
-                            </span>
-
-                            <span>
-                                <b>4</b>
-                                Very Good
-                            </span>
-
-                            <span>
-                                <b>3</b>
-                                Good
-                            </span>
-
-                            <span>
-                                <b>2</b>
-                                Fair
-                            </span>
-
-                            <span>
-                                <b>1</b>
-                                Poor
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                </form>
-
-            </div>
-
-
-            <!-- FORM FOOTER -->
-
-            <div class="card-footer form-footer">
-
-                <button
-                    type="button"
-                    class="btn cancel-btn"
-                    id="clearQuestion"
-                >
-
-                    <i class="fas fa-undo"></i>
-                    Clear
-
-                </button>
-
-
-                <button
-                    class="btn save-btn"
-                    form="manage-question"
-                >
-
-                    <i class="fas fa-save"></i>
-                    Save Question
-
-                </button>
-
-            </div>
-
-        </div>
-
-
-        <!-- QUICK TIP -->
-
-        <div class="quick-tip">
-
-            <div class="tip-icon">
-                <i class="fas fa-lightbulb"></i>
-            </div>
-
-            <div>
-
-                <strong>Quick Tip</strong>
-
-                <p>
-                    Keep questions simple, specific, and directly related
-                    to the selected evaluation criterion.
-                </p>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <!-- ================================================= -->
-    <!-- RIGHT: QUESTIONNAIRE -->
-    <!-- ================================================= -->
-
-    <div class="col-lg-8 col-md-7">
+    <div class="col-12">
 
         <div class="card modern-card questionnaire-card">
 
@@ -374,6 +130,18 @@ $q_arr = array();
 
                         <i class="fas fa-sort"></i>
                         Save Order
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="header-btn primary"
+                        id="new_question"
+                    >
+
+                        <i class="fas fa-plus"></i>
+                        Add Question
 
                     </button>
 
@@ -480,27 +248,27 @@ $q_arr = array();
 
                         <span class="rating-item excellent">
                             <b>5</b>
-                            Excellent
+                            Strongly Agree
                         </span>
 
                         <span class="rating-item very-good">
                             <b>4</b>
-                            Very Good
+                            Agree
                         </span>
 
                         <span class="rating-item good">
                             <b>3</b>
-                            Good
+                            Slightly Agree
                         </span>
 
                         <span class="rating-item fair">
                             <b>2</b>
-                            Fair
+                            Disagree
                         </span>
 
                         <span class="rating-item poor">
                             <b>1</b>
-                            Poor
+                            Strongly Disagree
                         </span>
 
                     </div>
@@ -694,7 +462,7 @@ $q_arr = array();
                         </strong>
 
                         <p>
-                            Add a question using the form on the left.
+                            Add a question using the Add Question button.
                         </p>
 
                     </div>
@@ -748,6 +516,244 @@ $q_arr = array();
 
 
 </div>
+
+<!-- ================================================= -->
+<!-- ADD / EDIT QUESTION MODAL -->
+<!-- ================================================= -->
+
+<div
+    class="modal fade question-modal"
+    id="question-modal"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="question-modal-title"
+    aria-hidden="true"
+>
+
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+
+        <div class="modal-content modern-card form-card">
+
+            <div class="modern-header">
+
+                <div class="header-icon">
+                    <i class="fas fa-plus"></i>
+                </div>
+
+                <div>
+
+                    <h4 id="question-modal-title">
+                        Add Question
+                    </h4>
+
+                    <p id="question-modal-subtitle">
+                        Create a new evaluation question
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="close question-modal-close"
+                    data-dismiss="modal"
+                    aria-label="Close"
+                >
+                    <span aria-hidden="true">&times;</span>
+                </button>
+
+            </div>
+
+
+            <div class="modal-body card-body">
+
+                <form action="" id="manage-question">
+
+                    <input
+                        type="hidden"
+                        name="academic_id"
+                        value="<?php echo isset($id) ? $id : ''; ?>"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="id"
+                    >
+
+
+                    <!-- CRITERIA -->
+
+                    <div class="form-section">
+
+                        <label class="modern-label">
+
+                            <span>
+                                <i class="fas fa-layer-group"></i>
+                                Evaluation Criteria
+                            </span>
+
+                            <small>Required</small>
+
+                        </label>
+
+
+                        <select
+                            name="criteria_id"
+                            id="criteria_id"
+                            class="custom-select select2"
+                        >
+
+                            <option value=""></option>
+
+                            <?php
+
+                            $criteria = $conn->query(
+                                "SELECT * FROM criteria_list
+                                 ORDER BY abs(order_by) ASC"
+                            );
+
+                            while($row = $criteria->fetch_assoc()):
+
+                            ?>
+
+                                <option value="<?php echo $row['id']; ?>">
+
+                                    <?php echo htmlspecialchars($row['criteria']); ?>
+
+                                </option>
+
+                            <?php endwhile; ?>
+
+                        </select>
+
+                        <div class="field-hint">
+                            <i class="fas fa-info-circle"></i>
+                            Select the category where this question belongs.
+                        </div>
+
+                    </div>
+
+
+                    <!-- QUESTION -->
+
+                    <div class="form-section">
+
+                        <label class="modern-label">
+
+                            <span>
+                                <i class="fas fa-question-circle"></i>
+                                Question
+                            </span>
+
+                            <small>Required</small>
+
+                        </label>
+
+
+                        <textarea
+                            name="question"
+                            id="question"
+                            class="form-control modern-textarea"
+                            rows="6"
+                            maxlength="500"
+                            placeholder="Enter your evaluation question here..."
+                            required><?php echo isset($question) ? htmlspecialchars($question) : ''; ?></textarea>
+
+
+                        <div class="textarea-footer">
+
+                            <span>
+                                <i class="fas fa-pen"></i>
+                                Write a clear and measurable question.
+                            </span>
+
+                            <span id="questionCounter">
+                                0 / 500
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- RATING INFO -->
+
+                    <div class="rating-info">
+
+                        <div class="rating-info-title">
+                            <i class="fas fa-star"></i>
+                            Rating Scale
+                        </div>
+
+                        <div class="rating-scale">
+
+                            <span>
+                                <b>5</b>
+                                Strongly Agree
+                            </span>
+
+                            <span>
+                                <b>4</b>
+                                Agree
+                            </span>
+
+                            <span>
+                                <b>3</b>
+                                Slightly Agree
+                            </span>
+
+                            <span>
+                                <b>2</b>
+                                Disagree
+                            </span>
+
+                            <span>
+                                <b>1</b>
+                                Strongly Disagree
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+
+            <!-- FORM FOOTER -->
+
+            <div class="card-footer form-footer">
+
+                <button
+                    type="button"
+                    class="btn cancel-btn"
+                    data-dismiss="modal"
+                >
+
+                    Cancel
+
+                </button>
+
+
+                <button
+                    type="submit"
+                    class="btn save-btn"
+                    form="manage-question"
+                >
+
+                    <i class="fas fa-save"></i>
+                    Save Question
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
 
 <style>
 
@@ -1445,6 +1451,44 @@ $q_arr = array();
     background:#ecfdf5;
 
     color:#047857;
+}
+
+
+/* =====================================================
+   ADD / EDIT QUESTION MODAL
+===================================================== */
+
+.question-modal .modal-content{
+
+    margin-bottom:0;
+
+    box-shadow:
+        0 20px 45px rgba(0,0,0,.18);
+
+}
+
+
+.question-modal-close{
+
+    margin-left:auto;
+
+    align-self:flex-start;
+
+    color:white;
+
+    opacity:.85;
+
+    text-shadow:none;
+
+}
+
+
+.question-modal-close:hover{
+
+    color:white;
+
+    opacity:1;
+
 }
 
 
@@ -2282,11 +2326,20 @@ $(document).ready(function(){
        SELECT2
     ========================================== */
 
+    // Move the modal to <body> so the page's cards can't stack it under the backdrop
+
+    $('#question-modal').appendTo('body');
+
+
     $('.select2').select2({
 
         placeholder:"Please select here",
 
-        width:"100%"
+        width:"100%",
+
+        // Inside the modal, or its search box can't take focus
+
+        dropdownParent:$('#question-modal')
 
     });
 
@@ -2317,6 +2370,80 @@ $(document).ready(function(){
 
 
     /* ==========================================
+       ADD / EDIT QUESTION MODAL
+    ========================================== */
+
+    function open_question_modal(data){
+
+        var form = $('#manage-question');
+
+
+        form[0].reset();
+
+
+        form
+            .find("[name='id']")
+            .val(data ? data.id : '');
+
+
+        form
+            .find("[name='question']")
+            .val(data ? data.question : '');
+
+
+        $('#criteria_id')
+            .val(data ? data.criteria_id : '')
+            .trigger('change');
+
+
+        updateCounter();
+
+
+        $('#question-modal .header-icon').html(
+            data
+                ? '<i class="fas fa-edit"></i>'
+                : '<i class="fas fa-plus"></i>'
+        );
+
+
+        $('#question-modal-title').text(
+            data ? 'Edit Question' : 'Add Question'
+        );
+
+
+        $('#question-modal-subtitle').text(
+            data
+                ? 'Update this evaluation question'
+                : 'Create a new evaluation question'
+        );
+
+
+        $('#question-modal .save-btn').html(
+            '<i class="fas fa-save"></i> ' +
+            (data ? 'Update Question' : 'Save Question')
+        );
+
+
+        $('#question-modal').modal('show');
+
+    }
+
+
+    $('#question-modal').on('shown.bs.modal',function(){
+
+        $('#question').trigger('focus');
+
+    });
+
+
+    $('#new_question').click(function(){
+
+        open_question_modal(null);
+
+    });
+
+
+    /* ==========================================
        EDIT QUESTION
     ========================================== */
 
@@ -2329,98 +2456,9 @@ $(document).ready(function(){
 
         if(question[id]){
 
-            $('#manage-question')
-                .find("[name='id']")
-                .val(question[id].id);
-
-
-            $('#manage-question')
-                .find("[name='question']")
-                .val(question[id].question);
-
-
-            $('#manage-question')
-                .find("[name='criteria_id']")
-                .val(question[id].criteria_id)
-                .trigger('change');
-
-
-            updateCounter();
-
-
-            $('.modern-header h4').html(
-                '<i class="fas fa-edit"></i> Edit Question'
-            );
-
-
-            $('.save-btn').html(
-                '<i class="fas fa-save"></i> Update Question'
-            );
-
-
-            $('html, body').animate({
-
-                scrollTop:
-                    $('.form-card').offset().top - 80
-
-            },400);
+            open_question_modal(question[id]);
 
         }
-
-    });
-
-
-    /* ==========================================
-       CLEAR FORM
-    ========================================== */
-
-    $('#clearQuestion').click(function(){
-
-        $('#manage-question')[0].reset();
-
-        $('#manage-question')
-            .find("[name='id']")
-            .val('');
-
-        $('#criteria_id')
-            .val('')
-            .trigger('change');
-
-
-        updateCounter();
-
-
-        $('.modern-header h4').html(
-            '<i class="fas fa-plus"></i> Add Question'
-        );
-
-
-        $('.save-btn').html(
-            '<i class="fas fa-save"></i> Save Question'
-        );
-
-    });
-
-
-    /* ==========================================
-       FORM RESET
-    ========================================== */
-
-    $('#manage-question').on('reset',function(){
-
-        $(this)
-            .find("input[name='id']")
-            .val('');
-
-        $('#criteria_id')
-            .val('')
-            .trigger('change');
-
-        setTimeout(function(){
-
-            updateCounter();
-
-        },50);
 
     });
 
@@ -2481,6 +2519,8 @@ $(document).ready(function(){
             success:function(resp){
 
                 if(resp == 1){
+
+                    $('#question-modal').modal('hide');
 
                     alert_toast(
                         'Question successfully saved',

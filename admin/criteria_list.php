@@ -51,136 +51,7 @@
 
             <div class="row">
 
-                <!-- =========================
-                     LEFT FORM
-                ========================== -->
-
-                <div class="col-lg-4 col-md-5">
-
-                    <div class="form-card">
-
-                        <div class="form-card-header">
-
-                            <div class="form-icon">
-                                <i class="fas fa-plus"></i>
-                            </div>
-
-                            <div>
-                                <h5>Criteria Form</h5>
-                                <p>Add or update evaluation criteria</p>
-                            </div>
-
-                        </div>
-
-
-                        <div class="form-card-body">
-
-                            <form action="" id="manage-criteria">
-
-                                <input type="hidden" name="id">
-
-
-                                <div id="msg"></div>
-
-
-                                <div class="form-group">
-
-                                    <label for="criteria">
-
-                                        <i class="fas fa-tag"></i>
-
-                                        Criteria Name
-
-                                    </label>
-
-
-                                    <input
-                                        type="text"
-                                        name="criteria"
-                                        id="criteria"
-                                        class="form-control criteria-input"
-                                        placeholder="Enter criteria name..."
-                                        autocomplete="off"
-                                        required
-                                    >
-
-
-                                    <small class="form-help">
-
-                                        Example: Program Relevance,
-                                        Service Quality, etc.
-
-                                    </small>
-
-                                </div>
-
-
-                                <!-- INFO BOX -->
-
-                                <div class="criteria-info">
-
-                                    <div class="info-icon">
-                                        <i class="fas fa-info-circle"></i>
-                                    </div>
-
-                                    <div>
-
-                                        <strong>Tip</strong>
-
-                                        <p>
-                                            Use short and clear criteria
-                                            names to make evaluation results
-                                            easier to understand.
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            </form>
-
-                        </div>
-
-
-                        <div class="form-card-footer">
-
-                            <button
-                                class="btn save-btn"
-                                form="manage-criteria"
-                                type="submit"
-                            >
-
-                                <i class="fas fa-save"></i>
-
-                                Save Criteria
-
-                            </button>
-
-
-                            <button
-                                class="btn cancel-btn"
-                                form="manage-criteria"
-                                type="reset"
-                            >
-
-                                <i class="fas fa-undo"></i>
-
-                                Clear
-
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- =========================
-                     RIGHT LIST
-                ========================== -->
-
-                <div class="col-lg-8 col-md-7">
+                <div class="col-12">
 
                     <div class="criteria-list-card">
 
@@ -212,17 +83,34 @@
                             </div>
 
 
-                            <button
-                                class="btn save-order"
-                                form="order-criteria"
-                                type="submit"
-                            >
+                            <div class="list-actions">
 
-                                <i class="fas fa-sort"></i>
+                                <button
+                                    class="btn save-order"
+                                    form="order-criteria"
+                                    type="submit"
+                                >
 
-                                Save Order
+                                    <i class="fas fa-sort"></i>
 
-                            </button>
+                                    Save Order
+
+                                </button>
+
+
+                                <button
+                                    class="btn add-criteria-btn"
+                                    id="new_criteria"
+                                    type="button"
+                                >
+
+                                    <i class="fas fa-plus"></i>
+
+                                    Add Criteria
+
+                                </button>
+
+                            </div>
 
                         </div>
 
@@ -240,6 +128,33 @@
                                  ORDER BY ABS(order_by) ASC"
                             );
 
+
+                            // Filled while listing; the edit modal reads it even when the list is empty
+
+                            $criteria = array();
+
+
+                            // Questions of the current academic year, grouped by criteria
+
+                            $academic_id = isset($_SESSION['academic']['id'])
+                                ? (int)$_SESSION['academic']['id']
+                                : 0;
+
+                            $questions = array();
+
+                            $q_qry = $conn->query(
+                                "SELECT criteria_id, question
+                                 FROM question_list
+                                 " . ($academic_id ? "WHERE academic_id = $academic_id" : "") . "
+                                 ORDER BY ABS(order_by) ASC"
+                            );
+
+                            while($q = $q_qry->fetch_assoc()){
+
+                                $questions[$q['criteria_id']][] = $q['question'];
+
+                            }
+
                             ?>
 
 
@@ -255,8 +170,6 @@
 
 
                                         <?php
-
-                                        $criteria = array();
 
                                         $counter = 1;
 
@@ -293,7 +206,18 @@
 
                                                 <!-- CONTENT -->
 
-                                                <div class="criteria-details">
+                                                <?php
+                                                $row_questions = isset($questions[$row['id']])
+                                                    ? $questions[$row['id']]
+                                                    : array();
+                                                ?>
+
+                                                <button
+                                                    type="button"
+                                                    class="criteria-details criteria-toggle"
+                                                    aria-expanded="false"
+                                                    aria-controls="criteria-questions-<?php echo $row['id']; ?>"
+                                                >
 
                                                     <span class="criteria-name">
 
@@ -309,9 +233,21 @@
 
                                                     <small>
                                                         Evaluation Criterion
+                                                        &middot;
+                                                        <?php echo count($row_questions); ?>
+                                                        <?php echo count($row_questions) == 1 ? 'Question' : 'Questions'; ?>
                                                     </small>
 
-                                                </div>
+                                                </button>
+
+
+                                                <!-- EXPAND ICON -->
+
+                                                <span class="criteria-chevron">
+
+                                                    <i class="fas fa-chevron-down"></i>
+
+                                                </span>
 
 
                                                 <!-- ACTION -->
@@ -382,6 +318,42 @@
                                                     value="<?php echo $row['id']; ?>"
                                                 >
 
+
+                                                <!-- QUESTIONS (shown on click) -->
+
+                                                <div
+                                                    class="criteria-questions"
+                                                    id="criteria-questions-<?php echo $row['id']; ?>"
+                                                >
+
+                                                    <?php if(count($row_questions) > 0): ?>
+
+                                                        <ol class="question-items">
+
+                                                            <?php foreach($row_questions as $question): ?>
+
+                                                                <li>
+                                                                    <?php echo htmlspecialchars($question); ?>
+                                                                </li>
+
+                                                            <?php endforeach; ?>
+
+                                                        </ol>
+
+                                                    <?php else: ?>
+
+                                                        <p class="no-questions">
+
+                                                            <i class="fas fa-info-circle"></i>
+
+                                                            No questions under this criterion yet.
+
+                                                        </p>
+
+                                                    <?php endif; ?>
+
+                                                </div>
+
                                             </li>
 
 
@@ -424,7 +396,7 @@
 
                                     <p>
                                         Start by adding your first evaluation
-                                        criterion using the form.
+                                        criterion using the Add Criteria button.
                                     </p>
 
                                 </div>
@@ -438,6 +410,149 @@
                     </div>
 
                 </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     CRITERIA FORM MODAL
+========================== -->
+
+<div
+    class="modal fade criteria-modal"
+    id="criteria-modal"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="criteria-modal-title"
+    aria-hidden="true"
+>
+
+    <div class="modal-dialog modal-dialog-centered" role="document">
+
+        <div class="modal-content form-card">
+
+            <div class="form-card-header">
+
+                <div class="form-icon">
+                    <i class="fas fa-plus"></i>
+                </div>
+
+                <div>
+                    <h5 id="criteria-modal-title">Add Criteria</h5>
+                    <p>Add or update evaluation criteria</p>
+                </div>
+
+                <button
+                    type="button"
+                    class="close criteria-modal-close"
+                    data-dismiss="modal"
+                    aria-label="Close"
+                >
+                    <span aria-hidden="true">&times;</span>
+                </button>
+
+            </div>
+
+
+            <div class="form-card-body">
+
+                <form action="" id="manage-criteria">
+
+                    <input type="hidden" name="id">
+
+
+                    <div id="msg"></div>
+
+
+                    <div class="form-group">
+
+                        <label for="criteria">
+
+                            <i class="fas fa-tag"></i>
+
+                            Criteria Name
+
+                        </label>
+
+
+                        <input
+                            type="text"
+                            name="criteria"
+                            id="criteria"
+                            class="form-control criteria-input"
+                            placeholder="Enter criteria name..."
+                            autocomplete="off"
+                            required
+                        >
+
+
+                        <small class="form-help">
+
+                            Example: Program Relevance,
+                            Service Quality, etc.
+
+                        </small>
+
+                    </div>
+
+
+                    <!-- INFO BOX -->
+
+                    <div class="criteria-info">
+
+                        <div class="info-icon">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+
+                        <div>
+
+                            <strong>Tip</strong>
+
+                            <p>
+                                Use short and clear criteria
+                                names to make evaluation results
+                                easier to understand.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+
+            <div class="form-card-footer">
+
+                <button
+                    class="btn cancel-btn"
+                    type="button"
+                    data-dismiss="modal"
+                >
+
+                    Cancel
+
+                </button>
+
+
+                <button
+                    class="btn save-btn"
+                    form="manage-criteria"
+                    type="submit"
+                >
+
+                    <i class="fas fa-save"></i>
+
+                    Save Criteria
+
+                </button>
 
             </div>
 
@@ -1033,6 +1148,79 @@
 }
 
 
+.list-actions{
+
+    display:flex;
+
+    gap:8px;
+
+}
+
+
+.add-criteria-btn{
+
+    background:#10b981!important;
+
+    color:white!important;
+
+    border:none!important;
+
+    border-radius:10px!important;
+
+    padding:9px 15px!important;
+
+    font-weight:600!important;
+
+    transition:.2s;
+
+}
+
+
+.add-criteria-btn:hover{
+
+    background:#047857!important;
+
+    transform:translateY(-1px);
+
+}
+
+
+/* =========================================
+   CRITERIA FORM MODAL
+========================================= */
+
+.criteria-modal .modal-content{
+
+    border:none;
+
+    margin-bottom:0;
+
+    box-shadow:
+        0 20px 45px rgba(0,0,0,.18);
+
+}
+
+
+.criteria-modal-close{
+
+    margin-left:auto;
+
+    align-self:flex-start;
+
+    color:#6b7280;
+
+    opacity:.8;
+
+}
+
+
+.criteria-modal-close:hover{
+
+    color:#065f46;
+
+}
+
+
 /* =========================================
    LIST BODY
 ========================================= */
@@ -1064,6 +1252,8 @@
     position:relative;
 
     display:flex;
+
+    flex-wrap:wrap;
 
     align-items:center;
 
@@ -1104,6 +1294,18 @@
 
     box-shadow:
         0 6px 16px rgba(16,185,129,.08);
+
+}
+
+
+/* The hover transform makes the row its own stacking context,
+   so raise it above the next rows or its action menu is hidden under them. */
+
+.criteria-item:hover,
+
+.criteria-item:focus-within{
+
+    z-index:2;
 
 }
 
@@ -1199,6 +1401,176 @@
     flex:1;
 
     min-width:0;
+
+}
+
+
+.criteria-toggle{
+
+    padding:0;
+
+    border:none;
+
+    background:none;
+
+    text-align:left;
+
+    cursor:pointer;
+
+}
+
+
+.criteria-toggle:focus{
+
+    outline:none;
+
+}
+
+
+.criteria-toggle:focus-visible{
+
+    outline:2px solid #10b981;
+
+    outline-offset:4px;
+
+    border-radius:6px;
+
+}
+
+
+.criteria-toggle:hover .criteria-name{
+
+    color:#047857;
+
+}
+
+
+/* =========================================
+   EXPAND / QUESTIONS
+========================================= */
+
+.criteria-chevron{
+
+    margin-left:8px;
+
+    color:#9ca3af;
+
+    font-size:12px;
+
+    cursor:pointer;
+
+    transition:transform .2s, color .2s;
+
+}
+
+
+.criteria-item.open .criteria-chevron{
+
+    transform:rotate(180deg);
+
+    color:#10b981;
+
+}
+
+
+.criteria-item.open{
+
+    border-color:#a7f3d0;
+
+}
+
+
+.criteria-questions{
+
+    display:none;
+
+    flex-basis:100%;
+
+    margin-top:12px;
+
+    padding-top:12px;
+
+    border-top:1px dashed #d1fae5;
+
+}
+
+
+.question-items{
+
+    margin:0;
+
+    padding-left:0;
+
+    list-style:none;
+
+    counter-reset:question;
+
+}
+
+
+.question-items li{
+
+    position:relative;
+
+    padding:8px 10px 8px 40px;
+
+    margin-bottom:6px;
+
+    background:#f9fafb;
+
+    border-radius:9px;
+
+    font-size:13px;
+
+    line-height:1.5;
+
+    color:#4b5563;
+
+    counter-increment:question;
+
+}
+
+
+.question-items li::before{
+
+    content:counter(question);
+
+    position:absolute;
+
+    left:10px;
+
+    top:8px;
+
+    width:20px;
+
+    height:20px;
+
+    border-radius:6px;
+
+    background:#ecfdf5;
+
+    color:#047857;
+
+    font-size:11px;
+
+    font-weight:800;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+}
+
+
+.no-questions{
+
+    margin:0;
+
+    font-size:13px;
+
+    color:#9ca3af;
 
 }
 
@@ -1537,9 +1909,18 @@
     }
 
 
-    .save-order{
+    .list-actions{
 
         width:100%;
+
+    }
+
+
+    .save-order,
+
+    .add-criteria-btn{
+
+        flex:1;
 
     }
 
@@ -1639,6 +2020,97 @@ $(document).ready(function(){
 
 
     /* =========================================
+       SHOW QUESTIONS UNDER CRITERIA
+    ========================================= */
+
+    $('.criteria-toggle, .criteria-chevron').click(function(){
+
+        var item = $(this).closest('.criteria-item');
+
+        var open = !item.hasClass('open');
+
+
+        item.toggleClass('open', open);
+
+        item.find('.criteria-toggle').attr('aria-expanded', open);
+
+        item.find('.criteria-questions').stop(true, true).slideToggle(200);
+
+    });
+
+
+    /* =========================================
+       CRITERIA FORM MODAL
+    ========================================= */
+
+    // Move the modal to <body> so the page's cards can't stack it under the backdrop
+
+    $('#criteria-modal').appendTo('body');
+
+
+    function open_criteria_modal(data){
+
+        var form = $('#manage-criteria');
+
+
+        form[0].reset();
+
+        $('#msg').html('');
+
+
+        form
+            .find("[name='id']")
+            .val(data ? data.id : '');
+
+
+        form
+            .find("[name='criteria']")
+            .val(data ? data.criteria : '');
+
+
+        $('#criteria-modal-title')
+            .text(data ? 'Edit Criteria' : 'Add Criteria');
+
+
+        $('#criteria-modal .form-icon')
+            .html(
+                data
+                    ? '<i class="fas fa-edit"></i>'
+                    : '<i class="fas fa-plus"></i>'
+            );
+
+
+        $('#criteria-modal .save-btn')
+            .html(
+                '<i class="fas fa-save"></i> ' +
+                (data ? 'Update Criteria' : 'Save Criteria')
+            );
+
+
+        $('#criteria-modal').modal('show');
+
+    }
+
+
+    $('#criteria-modal').on('shown.bs.modal',function(){
+
+        $('#criteria').trigger('focus');
+
+    });
+
+
+    /* =========================================
+       ADD CRITERIA
+    ========================================= */
+
+    $('#new_criteria').click(function(){
+
+        open_criteria_modal(null);
+
+    });
+
+
+    /* =========================================
        EDIT CRITERIA
     ========================================= */
 
@@ -1652,68 +2124,9 @@ $(document).ready(function(){
 
         if(criteria[id]){
 
-            $('#manage-criteria')
-                .find("[name='id']")
-                .val(criteria[id].id);
-
-
-            $('#manage-criteria')
-                .find("[name='criteria']")
-                .val(criteria[id].criteria)
-                .focus();
-
-
-            $('.form-card-header h5')
-                .text('Edit Criteria');
-
-
-            $('.form-icon')
-                .html('<i class="fas fa-edit"></i>');
-
-
-            $('.save-btn')
-                .html(
-                    '<i class="fas fa-save"></i> Update Criteria'
-                );
+            open_criteria_modal(criteria[id]);
 
         }
-
-    });
-
-
-    /* =========================================
-       RESET FORM
-    ========================================= */
-
-    $('#manage-criteria').on('reset',function(){
-
-        var form = this;
-
-
-        setTimeout(function(){
-
-            $(form)
-                .find("input[name='id']")
-                .val('');
-
-
-            $('.form-card-header h5')
-                .text('Criteria Form');
-
-
-            $('.form-icon')
-                .html('<i class="fas fa-plus"></i>');
-
-
-            $('.save-btn')
-                .html(
-                    '<i class="fas fa-save"></i> Save Criteria'
-                );
-
-
-            $('#criteria').focus();
-
-        },50);
 
     });
 
@@ -1801,6 +2214,8 @@ $(document).ready(function(){
             success:function(resp){
 
                 if(resp == 1){
+
+                    $('#criteria-modal').modal('hide');
 
                     alert_toast(
                         "Criteria successfully saved.",

@@ -909,9 +909,14 @@ $logo_path = 'uploads/OIP.jpg';
 
 <div class="instructions">
 
-    <strong>Instruction:</strong>
+    <strong>Panuto (Instruction):</strong>
 
-    Kindly evaluate this form by checking the appropriate rating.
+    Sagutin kung gaano kayo sumasang-ayon o hindi sumasang-ayon sa mga
+    sumusunod na pahayag. Lagyan ng tsek (&#10003;) ang loob ng kahon na
+    katumbas ng iyong sagot.
+    (Indicate the extent to which you agree or disagree with the following
+    statements. Put a check mark (&#10003;) inside a box that corresponds
+    to your answer.)
 
 </div>
 
@@ -930,23 +935,23 @@ $logo_path = 'uploads/OIP.jpg';
     </td>
 
     <td style="text-align:center;">
-        <strong>1</strong> - Poor
+        <strong>1</strong> - Strongly Disagree
     </td>
 
     <td style="text-align:center;">
-        <strong>2</strong> - Fair
+        <strong>2</strong> - Disagree
     </td>
 
     <td style="text-align:center;">
-        <strong>3</strong> - Good
+        <strong>3</strong> - Slightly Agree
     </td>
 
     <td style="text-align:center;">
-        <strong>4</strong> - Better
+        <strong>4</strong> - Agree
     </td>
 
     <td style="text-align:center;">
-        <strong>5</strong> - Best
+        <strong>5</strong> - Strongly Agree
     </td>
 
 </tr>

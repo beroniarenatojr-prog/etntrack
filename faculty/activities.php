@@ -541,6 +541,86 @@ BUTTON
 
 }
 
+/* Create Activity button */
+
+.btn-create-activity{
+
+    height:45px;
+
+    padding:0 18px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:linear-gradient(90deg,#1fa15d,#14894d);
+
+    color:white;
+
+    font-weight:600;
+
+    white-space:nowrap;
+
+    transition:.3s;
+
+}
+
+.btn-create-activity:hover{
+
+    color:white;
+
+    transform:translateY(-2px);
+
+    box-shadow:0 12px 20px rgba(25,135,84,.25);
+
+}
+
+/* Create / Edit Activity modal */
+
+.activity-modal .modal-content{
+
+    border:none;
+
+}
+
+.activity-modal .card-header-green{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:flex-start;
+
+    gap:12px;
+
+}
+
+.activity-modal .modal-body{
+
+    padding:25px 28px;
+
+}
+
+.activity-modal .modal-footer{
+
+    padding:15px 28px;
+
+    background:#fafafa;
+
+    border-top:1px solid #edf2f7;
+
+}
+
+.btn-cancel-activity{
+
+    height:52px;
+
+    padding:0 22px;
+
+    border-radius:12px;
+
+}
+
 /* Date range / coordinator filter row */
 
 .activity-filters{
@@ -792,145 +872,12 @@ BUTTON
 
 
 
-<!-- MY ACTIVITIES TAB: create form + own activities -->
+<!-- MY ACTIVITIES TAB: own activities (the create form opens in #activity-modal) -->
 <div id="tab-mine">
 
 <div class="row">
 
-<div class="col-md-4">
-
-<div class="card activity-card">
-
-<div class="card-header-green">
-
-<!-- Text changes to "Edit Activity" while editing (see start_edit) -->
-<h4 id="form-title">
-<i class="fa fa-calendar-plus mr-2"></i>
-Create Activity
-</h4>
-
-<p id="form-subtitle">Submit extension activities for approval.</p>
-
-</div>
-<div class="card-body">
-
-<form id="activity-form" enctype="multipart/form-data">
-
-<!-- Set while editing an existing activity -->
-<input type="hidden" name="id" id="activity_id" value="">
-
-<!-- The admin's revision note, shown while editing -->
-<div id="edit-note" class="alert alert-warning" style="display:none"></div>
-
-<div class="form-group">
-
-<label>Pictures <small class="text-muted" id="image-hint">(Optional · up to 10 · JPG, PNG, GIF or WEBP · 5 MB each)</small></label>
-
-<!-- One drop zone for several pictures; the chosen pictures show below it -->
-<label class="upload-box" id="drop-area">
-    <i class="fa fa-cloud-upload"></i>
-    <h6>Drag &amp; drop pictures here</h6>
-    <small>or click to choose (you can pick several)</small>
-    <input
-        type="file"
-        id="activity_images"
-        accept="image/jpeg,image/png,image/gif,image/webp"
-        multiple>
-</label>
-
-<div class="image-grid" id="image-grid"></div>
-
-<small class="text-muted d-block mt-2" id="image-count">0 / 10 pictures</small>
-
-</div>
-
-
-<div class="form-group">
-
-<label>Activity Name</label>
-
-<textarea
-name="activity_name"
-class="form-control"
-rows="3"
-required></textarea>
-
-</div>
-
-<div class="form-group">
-
-<label>Purpose</label>
-
-<textarea
-name="purpose"
-class="form-control"
-rows="3"
-required></textarea>
-
-</div>
-
-<div class="form-group">
-
-<label>Description</label>
-
-<textarea
-name="description"
-class="form-control"
-rows="4"></textarea>
-
-</div>
-
-<div class="form-group">
-
-<label>Activity Date</label>
-
-<input type="date"
-name="activity_date"
-id="activity_date"
-class="form-control"
-required>
-
-</div>
-
-<div class="form-group">
-
-<label>Venue</label>
-
-<input
-type="text"
-name="venue"
-id="venue"
-class="form-control"
-placeholder="e.g. ISU Gym"
-required>
-
-<!-- Shown when the venue is already booked on the chosen date -->
-<div id="venue-conflict" class="text-danger small mt-2" style="display:none"></div>
-
-</div>
-
-
-<button type="submit" class="btn btn-save btn-block">
-
-<i class="fa fa-paper-plane mr-2"></i>
-
-<span id="submit-text">Submit Activity</span>
-
-</button>
-
-<button type="button" id="cancel-edit" class="btn btn-light btn-block mt-2" style="display:none">
-    Cancel editing
-</button>
-
-</form>
-
-</div>
-
-</div>
-
-</div>
-
-<div class="col-md-8">
+<div class="col-12">
 
 <div class="card activity-card">
 
@@ -969,6 +916,11 @@ required>
             <option value="revision">Needs Revision</option>
             <option value="rejected">Rejected</option>
         </select>
+
+        <button type="button" class="btn btn-create-activity" id="open-create">
+            <i class="fa fa-calendar-plus mr-1"></i>
+            Create Activity
+        </button>
 
     </div>
 
@@ -1095,6 +1047,157 @@ required>
 
 </div>
 
+<!-- CREATE / EDIT ACTIVITY MODAL -->
+<div class="modal fade activity-modal" id="activity-modal" tabindex="-1" role="dialog"
+     aria-labelledby="form-title" aria-hidden="true">
+
+<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
+
+<div class="modal-content activity-card">
+
+<div class="card-header-green">
+
+<div>
+
+<!-- Text changes to "Edit Activity" while editing (see start_edit) -->
+<h4 id="form-title">
+<i class="fa fa-calendar-plus mr-2"></i>
+Create Activity
+</h4>
+
+<p id="form-subtitle">Submit extension activities for approval.</p>
+
+</div>
+
+<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+</button>
+
+</div>
+
+<div class="modal-body">
+
+<form id="activity-form" enctype="multipart/form-data">
+
+<!-- Set while editing an existing activity -->
+<input type="hidden" name="id" id="activity_id" value="">
+
+<!-- The admin's revision note, shown while editing -->
+<div id="edit-note" class="alert alert-warning" style="display:none"></div>
+
+<div class="form-group">
+
+<label>Pictures <small class="text-muted" id="image-hint">(Optional · up to 10 · JPG, PNG, GIF or WEBP · 5 MB each)</small></label>
+
+<!-- One drop zone for several pictures; the chosen pictures show below it -->
+<label class="upload-box" id="drop-area">
+    <i class="fa fa-cloud-upload"></i>
+    <h6>Drag &amp; drop pictures here</h6>
+    <small>or click to choose (you can pick several)</small>
+    <input
+        type="file"
+        id="activity_images"
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        multiple>
+</label>
+
+<div class="image-grid" id="image-grid"></div>
+
+<small class="text-muted d-block mt-2" id="image-count">0 / 10 pictures</small>
+
+</div>
+
+
+<div class="form-group">
+
+<label>Activity Name</label>
+
+<textarea
+name="activity_name"
+class="form-control"
+rows="3"
+required></textarea>
+
+</div>
+
+<div class="form-group">
+
+<label>Purpose</label>
+
+<textarea
+name="purpose"
+class="form-control"
+rows="3"
+required></textarea>
+
+</div>
+
+<div class="form-group">
+
+<label>Description</label>
+
+<textarea
+name="description"
+class="form-control"
+rows="4"></textarea>
+
+</div>
+
+<div class="form-group">
+
+<label>Activity Date</label>
+
+<input type="date"
+name="activity_date"
+id="activity_date"
+class="form-control"
+required>
+
+</div>
+
+<div class="form-group">
+
+<label>Venue</label>
+
+<input
+type="text"
+name="venue"
+id="venue"
+class="form-control"
+placeholder="e.g. ISU Gym"
+required>
+
+<!-- Shown when the venue is already booked on the chosen date -->
+<div id="venue-conflict" class="text-danger small mt-2" style="display:none"></div>
+
+</div>
+
+</form>
+
+</div>
+
+<div class="modal-footer">
+
+<button type="button" class="btn btn-light btn-cancel-activity" data-dismiss="modal">
+    Cancel
+</button>
+
+<button type="submit" form="activity-form" class="btn btn-save px-4">
+
+<i class="fa fa-paper-plane mr-2"></i>
+
+<span id="submit-text">Submit Activity</span>
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
 <link rel="stylesheet" href="assets/css/activity-table.css">
 
 <script src="assets/js/activity-table.js"></script>
@@ -1176,7 +1279,23 @@ $("#activity_date, #venue").on("input change", function(){
     conflictTimer = setTimeout(check_conflict, 400);
 });
 
-$("#cancel-edit").click(stop_edit);
+// Move the modal to <body> so the page's cards can't stack it under the backdrop
+$("#activity-modal").appendTo("body");
+
+$("#open-create").click(function(){
+    $("#activity-modal").modal("show");
+});
+
+$("#activity-modal").on("shown.bs.modal", function(){
+    $("#activity-form [name=activity_name]").trigger("focus");
+});
+
+// Closing while editing drops the edit; an unfinished new activity is kept for next time
+$("#activity-modal").on("hidden.bs.modal", function(){
+    if($("#activity_id").val() !== ""){
+        stop_edit();
+    }
+});
 
 $("#activity-form").submit(function(e){
 
@@ -1209,6 +1328,7 @@ $("#activity-form").submit(function(e){
                     showConfirmButton: false
                 });
 
+                $("#activity-modal").modal("hide");
                 stop_edit();
                 myTable.reload();
 
@@ -1260,7 +1380,6 @@ function start_edit(row){
     savedImages = (row.images || []).slice();
     render_images();
     $("#submit-text").text("Save Changes");
-    $("#cancel-edit").show();
 
     if(row.revision_note){
         $("#edit-note").text("Admin note: " + row.revision_note).show();
@@ -1268,7 +1387,7 @@ function start_edit(row){
 
     check_conflict();
 
-    $("html, body").animate({ scrollTop: $("#activity-form").closest(".card").offset().top - 80 }, 300);
+    $("#activity-modal").modal("show");
 
 }
 
@@ -1286,7 +1405,6 @@ function stop_edit(){
     $("#form-subtitle").text("Submit extension activities for approval.");
     $("#image-hint").text("(Optional · up to 10 · JPG, PNG, GIF or WEBP · 5 MB each)");
     $("#submit-text").text("Submit Activity");
-    $("#cancel-edit").hide();
 
 }
 
@@ -1461,7 +1579,7 @@ function show_conflict(message){
 
     $("#venue-conflict").text(message).toggle(message != "");
     $("#venue").toggleClass("is-invalid", message != "");
-    $("#activity-form .btn-save").prop("disabled", message != "");
+    $("#activity-modal .btn-save").prop("disabled", message != "");
 
 }
 

@@ -200,18 +200,65 @@ transform:translateY(-4px);
 
 }
 
-#selected-file{
+.list-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+}
 
-background:#fff;
+.btn-open-upload{
+    background:#fff;
+    color:#198754;
+    border:none;
+    border-radius:10px;
+    padding:9px 18px;
+    font-weight:600;
+    transition:.2s;
+}
 
-padding:12px;
+.btn-open-upload:hover{
+    background:#e9f8ef;
+    color:#146c43;
+}
 
-border-radius:10px;
+/* Upload form modal */
 
-margin-top:15px;
+.upload-modal .modal-content{
+    margin-bottom:0;
+}
 
-box-shadow:0 2px 8px rgba(0,0,0,.08);
+.upload-modal .upload-card:hover{
+    transform:none;
+}
 
+.upload-modal .upload-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.upload-modal .close{
+    color:#fff;
+    opacity:.85;
+    text-shadow:none;
+}
+
+.upload-modal .close:hover{
+    color:#fff;
+    opacity:1;
+}
+
+.upload-modal .modal-footer{
+    background:#fafafa;
+    border-top:1px solid #f1f5f9;
+}
+
+.btn-cancel-upload{
+    border-radius:10px;
+    height:48px;
+    padding:0 20px;
 }
 
 body{
@@ -525,174 +572,11 @@ font-size:13px;
 
 <div class="row">
 
-<div class="col-lg-5 col-xl-4">
-
-<div class="card upload-card">
-
-<div class="upload-header">
-
-<h4>
-<i class="fa fa-cloud-upload-alt"></i>
-Upload <span class="report-type-label">Terminal Report</span>
-</h4>
-
-</div>
-
-<div class="upload-body text-center">
-
-<div class="upload-icon">
-<i class="fa fa-file-pdf"></i>
-</div>
-
-<form id="upload-report" enctype="multipart/form-data">
-
-    <input type="hidden" name="report_type" id="report_type" value="Terminal Report">
-
-    <div class="form-group text-left">
-        <label><b>Report Title</b></label>
-        <input type="text" name="title" class="form-control" placeholder="Enter report title" required>
-    </div>
-
-    <div class="form-group text-left mt-3">
-        <label><b>Category</b> <small class="text-muted">(optional)</small></label>
-        <select class="form-control" name="category">
-            <option value="">Select category</option>
-            <option>Research</option>
-            <option>Extension</option>
-            <option>Training</option>
-        </select>
-    </div>
-
-    <div class="form-group text-left mt-3">
-        <label><b>Description</b> <small class="text-muted">(optional)</small></label>
-        <textarea
-            name="description"
-            class="form-control"
-            rows="3"
-            placeholder="Enter description"></textarea>
-    </div>
-
-    <div class="form-group mt-3">
-
-        <div class="upload-area" id="upload-area">
-
-            <input
-                type="file"
-                id="report"
-                name="report"
-                accept=".pdf"
-                hidden
-                required>
-
-            <i class="fa fa-cloud-upload upload-big-icon"></i>
-
-            <h5 class="mt-2">Drag & Drop your PDF here</h5>
-
-            <small class="text-muted d-block mb-3">
-                or
-            </small>
-
-            <button type="button" class="btn btn-success px-4" id="browse-btn">
-                <i class="fa fa-folder-open"></i>
-                Browse Files
-            </button>
-
-            <div class="upload-info mt-3">
-                Only PDF files allowed • Maximum size: 10 MB
-            </div>
-
-        </div>
-
-    </div>
-
-    <!-- FILE PREVIEW -->
-    <div id="selected-file" style="display:none">
-
-        <div class="selected-card">
-
-            <div class="d-flex align-items-center">
-
-                <div class="pdf-icon">
-                    <i class="fa fa-file-pdf text-danger"></i>
-                </div>
-
-                <div class="ml-3">
-
-                    <div id="file-name">Annual_Report.pdf</div>
-
-                    <small id="file-size" class="text-muted">
-                        0 KB
-                    </small>
-
-                </div>
-
-            </div>
-
-            <button
-                type="button"
-                class="btn btn-link text-danger p-0"
-                id="remove-file">
-
-                Remove
-
-            </button>
-            <div id="selected-file" style="display:none">
-
-    <div class="selected-file-card">
-
-        <div class="d-flex align-items-center">
-
-            <div class="selected-pdf-icon">
-                <i class="fa fa-file-pdf"></i>
-            </div>
-
-            <div class="ml-3 flex-grow-1">
-
-                <div id="file-name"></div>
-
-                <small id="file-size" class="text-muted"></small>
-
-            </div>
-
-            <button
-                type="button"
-                class="btn btn-sm btn-outline-danger"
-                id="remove-file">
-
-                <i class="fa fa-times"></i>
-
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-        </div>
-
-    </div>
-
-    <button class="btn btn-upload btn-block mt-4">
-        <i class="fa fa-upload"></i>
-        Upload Report
-    </button>
-
-</form>
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<div class="col-lg-8">
+<div class="col-12">
 
 <div class="card table-card">
 
-<div class="upload-header">
+<div class="upload-header list-header">
 
 <h4>
 
@@ -701,6 +585,11 @@ Upload <span class="report-type-label">Terminal Report</span>
 My <span class="report-type-label">Terminal Report</span>s
 
 </h4>
+
+<button type="button" class="btn btn-open-upload" id="open-upload">
+    <i class="fa fa-cloud-upload-alt"></i>
+    Upload Report
+</button>
 
 </div>
 
@@ -804,6 +693,149 @@ My <span class="report-type-label">Terminal Report</span>s
 </div>
 
 
+<!-- UPLOAD REPORT MODAL -->
+<div class="modal fade upload-modal" id="upload-modal" tabindex="-1" role="dialog"
+     aria-labelledby="upload-modal-title" aria-hidden="true">
+
+<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+
+<div class="modal-content upload-card">
+
+<div class="upload-header">
+
+<h4 id="upload-modal-title">
+<i class="fa fa-cloud-upload-alt"></i>
+Upload <span class="report-type-label">Terminal Report</span>
+</h4>
+
+<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+</button>
+
+</div>
+
+<div class="modal-body upload-body">
+
+<form id="upload-report" enctype="multipart/form-data">
+
+    <input type="hidden" name="report_type" id="report_type" value="Terminal Report">
+
+    <div class="form-group">
+        <label><b>Report Title</b></label>
+        <input type="text" name="title" class="form-control" placeholder="Enter report title" required>
+    </div>
+
+    <div class="form-group mt-3">
+        <label><b>Category</b> <small class="text-muted">(optional)</small></label>
+        <select class="form-control" name="category">
+            <option value="">Select category</option>
+            <option>Research</option>
+            <option>Extension</option>
+            <option>Training</option>
+        </select>
+    </div>
+
+    <div class="form-group mt-3">
+        <label><b>Description</b> <small class="text-muted">(optional)</small></label>
+        <textarea
+            name="description"
+            class="form-control"
+            rows="3"
+            placeholder="Enter description"></textarea>
+    </div>
+
+    <div class="form-group mt-3 mb-0">
+
+        <div class="upload-area" id="upload-area">
+
+            <input
+                type="file"
+                id="report"
+                name="report"
+                accept=".pdf"
+                hidden
+                required>
+
+            <i class="fa fa-cloud-upload upload-big-icon"></i>
+
+            <h5 class="mt-2">Drag & Drop your PDF here</h5>
+
+            <small class="text-muted d-block mb-3">
+                or
+            </small>
+
+            <button type="button" class="btn btn-success px-4" id="browse-btn">
+                <i class="fa fa-folder-open"></i>
+                Browse Files
+            </button>
+
+            <div class="upload-info mt-3">
+                Only PDF files allowed • Maximum size: 10 MB
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- FILE PREVIEW -->
+    <div id="selected-file" style="display:none">
+
+        <div class="selected-file-card">
+
+            <div class="d-flex align-items-center">
+
+                <div class="selected-pdf-icon">
+                    <i class="fa fa-file-pdf"></i>
+                </div>
+
+                <div class="ml-3 flex-grow-1 text-truncate">
+
+                    <div id="file-name" class="text-truncate"></div>
+
+                    <small id="file-size" class="text-muted"></small>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger ml-2"
+                    id="remove-file"
+                    aria-label="Remove file">
+
+                    <i class="fa fa-times"></i>
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</form>
+
+</div>
+
+<div class="modal-footer">
+
+    <button type="button" class="btn btn-light btn-cancel-upload" data-dismiss="modal">
+        Cancel
+    </button>
+
+    <button type="submit" form="upload-report" class="btn btn-upload px-4">
+        <i class="fa fa-upload"></i>
+        Upload Report
+    </button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
 <script>
 const uploadArea = document.getElementById("upload-area");
 const fileInput = document.getElementById("report");
@@ -864,6 +896,17 @@ showSelectedFile(files[0]);
 $(document).ready(function () {
 
     load_reports();
+
+    // Move the modal to <body> so the page's cards can't stack it under the backdrop
+    $("#upload-modal").appendTo("body");
+
+    $("#open-upload").click(function () {
+        $("#upload-modal").modal("show");
+    });
+
+    $("#upload-modal").on("shown.bs.modal", function () {
+        $("#upload-report [name='title']").trigger("focus");
+    });
 
     $(".report-tabs .nav-link").click(function (e) {
 
@@ -933,6 +976,8 @@ $(document).ready(function () {
                         timer: 1800,
                         showConfirmButton: false
                     });
+
+                    $("#upload-modal").modal("hide");
 
                     $("#upload-report")[0].reset();
                     $("#file-name").html("");
