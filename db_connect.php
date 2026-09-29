@@ -1,3 +1,12 @@
-<?php 
+<?php
 
-$conn= new mysqli('localhost','root','','xtntrack')or die("Could not connect to mysql".mysqli_error($con));
+$conn = new mysqli(
+    'localhost',
+    'u988863428_Xtntrack123',
+    'Xtntrack-1',
+    'u988863428_xtntrack2'
+);
+
+if ($conn->connect_error) {
+    die("Could not connect to MySQL: " . $conn->connect_error);
+}
