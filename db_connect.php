@@ -4,7 +4,7 @@ $conn = new mysqli(
     'localhost',
     'u988863428_Xtntrack123',
     'Xtntrack-1',
-    'u988863428_xtntrack2'
+    'u988863428_xtntrack1'
 );
 
 if ($conn->connect_error) {
