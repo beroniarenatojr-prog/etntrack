@@ -47,6 +47,20 @@ $actions = array(
     'approve_reportadmin'    => array('admin',       'approve_report'),
     'reject_reportadmin'     => array('admin',       'reject_report'),
 
+    // Projects and their pre-activity documents. Each method checks that the
+    // project belongs to the caller before it changes anything.
+    'project_list'           => array('any',   'project_list'),
+    'project_detail'         => array('any',   'project_detail'),
+    'project_save'           => array('any',   'project_save'),
+    'project_delete'         => array('any',   'project_delete'),
+    'project_set_status'     => array('admin', 'project_set_status'),
+    'coordinator_options'    => array('any',   'coordinator_options'),
+    'doc_save'               => array('any',   'doc_save'),
+    'doc_delete'             => array('any',   'doc_delete'),
+    'doc_review'             => array('admin', 'doc_review'),
+    'designation_save'       => array('any',   'designation_save'),
+    'designation_delete'     => array('any',   'designation_delete'),
+
     // Own profile
     'update_user'            => array('any', 'update_user'),
 

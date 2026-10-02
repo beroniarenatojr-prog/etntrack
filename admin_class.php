@@ -7,7 +7,12 @@ $on_localhost = in_array($_SERVER['SERVER_NAME'] ?? 'localhost', array('localhos
 ini_set('display_errors', $on_localhost ? '1' : '0');
 ini_set('log_errors', '1');
 
+require_once __DIR__.'/project_actions.php';
+
 Class Action {
+
+	use ProjectActions;   // projects and their pre-activity documents
+
 	private $db;
 
 	public function __construct() {

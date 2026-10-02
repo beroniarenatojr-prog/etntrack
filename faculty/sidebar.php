@@ -227,6 +227,22 @@
 
                 <li class="nav-item">
 
+                    <a href="./index.php?page=projects"
+                       class="nav-link nav-projects nav-project_detail">
+
+                        <i class="fas fa-project-diagram"></i>
+
+                        <p>Projects</p>
+
+                    </a>
+
+                </li>
+
+
+
+
+                <li class="nav-item">
+
                     <a href="./index.php?page=result"
                        class="nav-link nav-result">
 
