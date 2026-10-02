@@ -228,15 +228,32 @@
 
 
 
-<!-- QUESTION -->
+<!-- EVALUATION (questionnaires + criteria) -->
 
-<li class="nav-item">
+<li class="nav-item has-treeview">
+
+<a href="#"
+class="nav-link">
+
+<i class="nav-icon fas fa-clipboard-list"></i>
+
+<p>
+Evaluation
+<i class="right fas fa-angle-down"></i>
+</p>
+
+</a>
+
+
+<ul class="nav nav-treeview">
+
+
+<li>
 
 <a href="./index.php?page=questionnaire"
-class="nav-link nav-questionnaire">
+class="nav-link tree-item nav-questionnaire">
 
-<i class="nav-icon fas fa-file-alt"></i>
-
+<i class="far fa-circle nav-icon"></i>
 <p>Questionnaires</p>
 
 </a>
@@ -244,20 +261,20 @@ class="nav-link nav-questionnaire">
 </li>
 
 
-
-
-<!-- CRITERIA -->
-
-<li class="nav-item">
+<li>
 
 <a href="./index.php?page=criteria_list"
-class="nav-link nav-criteria_list">
+class="nav-link tree-item nav-criteria_list">
 
-<i class="nav-icon fas fa-sliders-h"></i>
-
+<i class="far fa-circle nav-icon"></i>
 <p>Evaluation Criteria</p>
 
 </a>
+
+</li>
+
+
+</ul>
 
 </li>
 
@@ -439,6 +456,21 @@ class="nav-link tree-item nav-user_list">
 <i class="far fa-circle nav-icon"></i>
 
 <p>User List</p>
+
+</a>
+
+</li>
+
+
+
+<li>
+
+<a href="./index.php?page=system_update"
+class="nav-link tree-item nav-system_update">
+
+<i class="far fa-circle nav-icon"></i>
+
+<p>System Update</p>
 
 </a>
 

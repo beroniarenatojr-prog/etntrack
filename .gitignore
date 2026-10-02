@@ -1,2 +1,3 @@
-# Gmail credentials for sending verification codes
+# Credentials: never commit these, the repository is public.
 mail_config.php
+db_config.php

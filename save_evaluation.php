@@ -13,6 +13,13 @@ if ($activity_id == 0) {
     die("Invalid Activity.");
 }
 
+// Only an approved activity may be evaluated, the same rule the form uses
+$check = $conn->query("SELECT id FROM activities WHERE id = $activity_id AND status = 'approved' LIMIT 1");
+
+if (!$check || $check->num_rows == 0) {
+    die("This activity is not open for evaluation.");
+}
+
 if (empty($ratings)) {
     die("Please answer all questions.");
 }
@@ -37,9 +44,9 @@ foreach ($ratings as $question_id => $rate) {
     $rate = intval($rate);
 
     $sql = "INSERT INTO evaluation_answers
-            (evaluation_id, question_id, rate, activity_id, evaluator_name)
+            (evaluation_id, question_id, rate, activity_id, evaluator_name, submitted_at)
             VALUES
-            ('$evaluation_id', '$question_id', '$rate', '$activity_id', '$evaluator_name')";
+            ('$evaluation_id', '$question_id', '$rate', '$activity_id', '$evaluator_name', NOW())";
 
     if (!$conn->query($sql)) {
         die("Database Error: " . $conn->error);

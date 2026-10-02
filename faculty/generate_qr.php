@@ -1,5 +1,13 @@
 <?php
+session_start();
+
+if(empty($_SESSION['login_id'])){
+    header('Location: ../login.php');
+    exit;
+}
+
 include '../db_connect.php';
+include '../site_url.php';
 include 'phpqrcode/qrlib.php';
 
 if(!isset($_GET['id'])){
@@ -23,8 +31,9 @@ if($row['status'] != 'approved'){
 $filename = "activity_".$id.".png";
 $filepath = "../assets/qrcodes/".$filename;
 
-// URL to verify the activity
-$data = "http://localhost/eval/evaluate.php?activity_id=".$id;
+// Where the QR code sends the participant. Built from the address the site is
+// being used on, so a scanned code works on the live site as well as on XAMPP.
+$data = site_url('evaluate.php?activity_id='.$id);
 // Generate QR only once
 // Always regenerate the QR
 QRcode::png($data, $filepath, QR_ECLEVEL_H, 8);

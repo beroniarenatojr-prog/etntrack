@@ -1,6 +1,12 @@
 <?php
 session_start();
-ini_set('display_errors', 1);
+
+// Show PHP errors while developing on XAMPP, but never to visitors of the live
+// site, where an error message would reveal database details.
+$on_localhost = in_array($_SERVER['SERVER_NAME'] ?? 'localhost', array('localhost', '127.0.0.1', '::1'));
+ini_set('display_errors', $on_localhost ? '1' : '0');
+ini_set('log_errors', '1');
+
 Class Action {
 	private $db;
 
@@ -16,17 +22,46 @@ Class Action {
 	}
 
 	function login(){
-		extract($_POST);
+
 		$type = array("","users","faculty_list","student_list");
 		$type2 = array("","admin","faculty","student");
-			$qry = $this->db->query("SELECT *,concat(firstname,' ',lastname) as name FROM {$type[$login]} where email = '".$email."' and password = '".md5($password)."'  ");
-		if($qry->num_rows > 0){
-			foreach ($qry->fetch_array() as $key => $value) {
+
+		$login = isset($_POST['login']) ? (int)$_POST['login'] : 0;
+		$email = trim($_POST['email'] ?? '');
+		$password = (string)($_POST['password'] ?? '');
+
+		if(!isset($type[$login]) || $login < 1 || $email === '' || $password === ''){
+			return 2;
+		}
+
+		$stmt = $this->db->prepare("SELECT *, concat(firstname,' ',lastname) as name FROM {$type[$login]} WHERE email = ? LIMIT 1");
+		$stmt->bind_param('s', $email);
+		$stmt->execute();
+		$qry = $stmt->get_result();
+
+		$row = $qry->num_rows > 0 ? $qry->fetch_assoc() : null;
+
+		// Accounts made before this change hold an MD5 hash; those still work and
+		// are re-saved in the modern format the first time the owner signs in.
+		$stored = $row ? (string)$row['password'] : '';
+		$is_old = $stored !== '' && strlen($stored) === 32 && ctype_xdigit($stored);
+		$ok = $row && ($is_old ? hash_equals($stored, md5($password)) : password_verify($password, $stored));
+
+		if($ok && $is_old){
+			$new = password_hash($password, PASSWORD_DEFAULT);
+			$update = $this->db->prepare("UPDATE {$type[$login]} SET password = ? WHERE id = ?");
+			$update->bind_param('si', $new, $row['id']);
+			$update->execute();
+		}
+
+		if($ok){
+			foreach ($row as $key => $value) {
 				if($key != 'password' && !is_numeric($key))
 					$_SESSION['login_'.$key] = $value;
 			}
 					$_SESSION['login_type'] = $login;
 					$_SESSION['login_view_folder'] = $type2[$login].'/';
+					session_regenerate_id(true);   // a new session id on sign-in
 		$academic = $this->db->query("SELECT * FROM academic_list where is_default = 1 ");
 		if($academic->num_rows > 0){
 			foreach($academic->fetch_array() as $k => $v){
@@ -60,22 +95,25 @@ Class Action {
 		}
 	}
 	function save_user(){
-		extract($_POST);
-		$data = "";
-		foreach($_POST as $k => $v){
-			if(!in_array($k, array('id','cpass','password','otp')) && !is_numeric($k)){
-				if(empty($data)){
-					$data .= " $k='$v' ";
-				}else{
-					$data .= ", $k='$v' ";
-				}
-			}
-		}
-		if(!empty($password)){
-					$data .= ", password=md5('$password') ";
 
+		$id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+		$firstname = trim($_POST['firstname'] ?? '');
+		$lastname = trim($_POST['lastname'] ?? '');
+		$email = trim($_POST['email'] ?? '');
+		$password = (string)($_POST['password'] ?? '');
+
+		if($firstname === '' || $lastname === '' || $email === ''){
+			return "Please fill in the name and email.";
 		}
-		$check = $this->db->query("SELECT * FROM users where email ='$email' ".(!empty($id) ? " and id != {$id} " : ''))->num_rows;
+
+		$data = " firstname = '".$this->db->real_escape_string($firstname)."'"
+			.", lastname = '".$this->db->real_escape_string($lastname)."'"
+			.", email = '".$this->db->real_escape_string($email)."'";
+
+		if($password !== ''){
+			$data .= ", password = '".password_hash($password, PASSWORD_DEFAULT)."'";
+		}
+		$check = $this->db->query("SELECT id FROM users WHERE email = '".$this->db->real_escape_string($email)."'".($id ? " AND id != $id" : ''))->num_rows;
 		if($check > 0){
 			return 2;
 			exit;
@@ -86,9 +124,14 @@ Class Action {
 				return $verified;
 			}
 		}
-		if(isset($_FILES['img']) && $_FILES['img']['tmp_name'] != ''){
-			$fname = strtotime(date('y-m-d H:i')).'_'.$_FILES['img']['name'];
-			$move = move_uploaded_file($_FILES['img']['tmp_name'],'assets/uploads/'. $fname);
+		if(isset($_FILES['img']) && !empty($_FILES['img']['tmp_name'])){
+
+			list($fname, $upload_error) = $this->store_avatar($_FILES['img']);
+
+			if($upload_error){
+				return $upload_error;
+			}
+
 			$data .= ", avatar = '$fname' ";
 
 		}
@@ -218,53 +261,117 @@ Class Action {
 		}
 	}
 
+	// Saves the signed-in user's own profile. The row is always the one in the
+	// session, never an id sent by the browser, so nobody can edit another account.
 	function update_user(){
-		extract($_POST);
-		$data = "";
-		$type = array("","users","faculty_list","student_list");
-	foreach($_POST as $k => $v){
-			if(!in_array($k, array('id','cpass','table','password')) && !is_numeric($k)){
-				
-				if(empty($data)){
-					$data .= " $k='$v' ";
-				}else{
-					$data .= ", $k='$v' ";
-				}
-			}
+
+		$tables = array(1 => 'users', 2 => 'faculty_list', 3 => 'student_list');
+		$type = (int)$_SESSION['login_type'];
+
+		if(!isset($tables[$type]) || empty($_SESSION['login_id'])){
+			return "Please log in again.";
 		}
-		$check = $this->db->query("SELECT * FROM {$type[$_SESSION['login_type']]} where email ='$email' ".(!empty($id) ? " and id != {$id} " : ''))->num_rows;
+
+		$table = $tables[$type];
+		$id = (int)$_SESSION['login_id'];
+
+		$firstname = trim($_POST['firstname'] ?? '');
+		$lastname = trim($_POST['lastname'] ?? '');
+		$email = trim($_POST['email'] ?? '');
+		$password = (string)($_POST['password'] ?? '');
+
+		if($firstname === '' || $lastname === '' || $email === ''){
+			return "Please fill in your name and email.";
+		}
+
+		$check = $this->db->query("SELECT id FROM $table WHERE email = '".$this->db->real_escape_string($email)."' AND id != $id")->num_rows;
+
 		if($check > 0){
 			return 2;
-			exit;
 		}
-		if(isset($_FILES['img']) && $_FILES['img']['tmp_name'] != ''){
-			$fname = strtotime(date('y-m-d H:i')).'_'.$_FILES['img']['name'];
-			$move = move_uploaded_file($_FILES['img']['tmp_name'],'assets/uploads/'. $fname);
-			$data .= ", avatar = '$fname' ";
 
+		$data = " firstname = '".$this->db->real_escape_string($firstname)."'"
+			.", lastname = '".$this->db->real_escape_string($lastname)."'"
+			.", email = '".$this->db->real_escape_string($email)."'";
+
+		$avatar = '';
+
+		if(isset($_FILES['img']) && !empty($_FILES['img']['tmp_name'])){
+
+			list($avatar, $error) = $this->store_avatar($_FILES['img']);
+
+			if($error){
+				return $error;
+			}
+
+			$data .= ", avatar = '$avatar'";
 		}
-		if(!empty($password))
-			$data .= " ,password=md5('$password') ";
-		if(empty($id)){
-			$save = $this->db->query("INSERT INTO {$type[$_SESSION['login_type']]} set $data");
-		}else{
-			echo "UPDATE {$type[$_SESSION['login_type']]} set $data where id = $id";
-			$save = $this->db->query("UPDATE {$type[$_SESSION['login_type']]} set $data where id = $id");
+
+		if($password !== ''){
+			$data .= ", password = '".password_hash($password, PASSWORD_DEFAULT)."'";
 		}
+
+		$save = $this->db->query("UPDATE $table SET $data WHERE id = $id");
 
 		if($save){
-			foreach ($_POST as $key => $value) {
-				if($key != 'password' && !is_numeric($key))
-					$_SESSION['login_'.$key] = $value;
+			$_SESSION['login_firstname'] = $firstname;
+			$_SESSION['login_lastname'] = $lastname;
+			$_SESSION['login_email'] = $email;
+			$_SESSION['login_name'] = $firstname.' '.$lastname;
+			if($avatar !== ''){
+				$_SESSION['login_avatar'] = $avatar;
 			}
-			if(isset($_FILES['img']) && !empty($_FILES['img']['tmp_name']))
-					$_SESSION['login_avatar'] = $fname;
 			return 1;
 		}
+
+		return "Could not save your profile. Please try again.";
+	}
+
+	/*
+	|--------------------------------------------------------------------------
+	| PROFILE PICTURE
+	| Checks the file's actual contents (a renamed script is refused), gives it
+	| a random name and stores it. Returns array(filename, error message).
+	|--------------------------------------------------------------------------
+	*/
+	private function store_avatar($file){
+
+		if(!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])){
+			return array('', "The picture could not be uploaded.");
+		}
+
+		if($file['size'] > 5242880){
+			return array('', "The picture is larger than 5 MB.");
+		}
+
+		$types = array(IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_GIF => 'gif', IMAGETYPE_WEBP => 'webp');
+		$info = @getimagesize($file['tmp_name']);
+
+		if(!$info || !isset($types[$info[2]])){
+			return array('', "The picture must be a JPG, PNG, GIF or WEBP file.");
+		}
+
+		if(!is_dir('assets/uploads')){
+			mkdir('assets/uploads', 0755, true);
+		}
+
+		$name = time().'_'.bin2hex(random_bytes(6)).'.'.$types[$info[2]];
+
+		if(!move_uploaded_file($file['tmp_name'], 'assets/uploads/'.$name)){
+			return array('', "The picture could not be saved.");
+		}
+
+		return array($name, '');
 	}
 	function delete_user(){
-		extract($_POST);
-		$delete = $this->db->query("DELETE FROM users where id = ".$id);
+		$id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+		if($id <= 0){
+			return "User not found.";
+		}
+		if($id === (int)$_SESSION['login_id']){
+			return "You cannot delete the account you are signed in with.";
+		}
+		$delete = $this->db->query("DELETE FROM users WHERE id = $id");
 		if($delete)
 			return 1;
 	}
@@ -2006,27 +2113,32 @@ function update_activity_status(){
 		}
 	}
 	function save_faculty(){
-		extract($_POST);
-		$data = "";
-		foreach($_POST as $k => $v){
-			if(!in_array($k, array('id','cpass','password','otp')) && !is_numeric($k)){
-				if(empty($data)){
-					$data .= " $k='$v' ";
-				}else{
-					$data .= ", $k='$v' ";
-				}
-			}
-		}
-		if(!empty($password)){
-					$data .= ", password=md5('$password') ";
 
+		$id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+		$school_id = trim($_POST['school_id'] ?? '');
+		$firstname = trim($_POST['firstname'] ?? '');
+		$lastname = trim($_POST['lastname'] ?? '');
+		$email = trim($_POST['email'] ?? '');
+		$password = (string)($_POST['password'] ?? '');
+
+		if($school_id === '' || $firstname === '' || $lastname === '' || $email === ''){
+			return "Please fill in the School ID, name and email.";
 		}
-		$check = $this->db->query("SELECT * FROM faculty_list where email ='$email' ".(!empty($id) ? " and id != {$id} " : ''))->num_rows;
+
+		$data = " school_id = '".$this->db->real_escape_string($school_id)."'"
+			.", firstname = '".$this->db->real_escape_string($firstname)."'"
+			.", lastname = '".$this->db->real_escape_string($lastname)."'"
+			.", email = '".$this->db->real_escape_string($email)."'";
+
+		if($password !== ''){
+			$data .= ", password = '".password_hash($password, PASSWORD_DEFAULT)."'";
+		}
+		$check = $this->db->query("SELECT id FROM faculty_list WHERE email = '".$this->db->real_escape_string($email)."'".($id ? " AND id != $id" : ''))->num_rows;
 		if($check > 0){
 			return 2;
 			exit;
 		}
-		$check = $this->db->query("SELECT * FROM faculty_list where school_id ='$school_id' ".(!empty($id) ? " and id != {$id} " : ''))->num_rows;
+		$check = $this->db->query("SELECT id FROM faculty_list WHERE school_id = '".$this->db->real_escape_string($school_id)."'".($id ? " AND id != $id" : ''))->num_rows;
 		if($check > 0){
 			return 3;
 			exit;
@@ -2037,9 +2149,14 @@ function update_activity_status(){
 				return $verified;
 			}
 		}
-		if(isset($_FILES['img']) && $_FILES['img']['tmp_name'] != ''){
-			$fname = strtotime(date('y-m-d H:i')).'_'.$_FILES['img']['name'];
-			$move = move_uploaded_file($_FILES['img']['tmp_name'],'assets/uploads/'. $fname);
+		if(isset($_FILES['img']) && !empty($_FILES['img']['tmp_name'])){
+
+			list($fname, $upload_error) = $this->store_avatar($_FILES['img']);
+
+			if($upload_error){
+				return $upload_error;
+			}
+
 			$data .= ", avatar = '$fname' ";
 
 		}
@@ -2054,8 +2171,11 @@ function update_activity_status(){
 		}
 	}
 	function delete_faculty(){
-		extract($_POST);
-		$delete = $this->db->query("DELETE FROM faculty_list where id = ".$id);
+		$id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+		if($id <= 0){
+			return "Coordinator not found.";
+		}
+		$delete = $this->db->query("DELETE FROM faculty_list WHERE id = $id");
 		if($delete)
 			return 1;
 	}
@@ -2411,23 +2531,30 @@ function approve_report(){
 ////admin 
 function delete_report(){
 
-    extract($_POST);
+    $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
-    $q = $this->db->query("SELECT file_name FROM uploaded_reports WHERE id='$id'");
-
-    if($q->num_rows > 0){
-
-        $row = $q->fetch_assoc();
-
-        $file = "uploads/reports/".$row['file_name'];
-
-        if(file_exists($file)){
-            unlink($file);
-        }
-
+    if($id <= 0){
+        return "Report not found.";
     }
 
-    $delete = $this->db->query("DELETE FROM uploaded_reports WHERE id='$id'");
+    // The admin may delete any report; a coordinator only their own
+    $own = $_SESSION['login_type'] == 1 ? "" : " AND uploaded_by = ".(int)$_SESSION['login_id'];
+
+    $q = $this->db->query("SELECT file_name FROM uploaded_reports WHERE id = $id $own");
+
+    if($q->num_rows == 0){
+        return "You can only delete your own reports.";
+    }
+
+    $row = $q->fetch_assoc();
+
+    $file = "uploads/reports/".basename($row['file_name']);
+
+    if(is_file($file)){
+        unlink($file);
+    }
+
+    $delete = $this->db->query("DELETE FROM uploaded_reports WHERE id = $id $own");
 
     if($delete){
         return 1;

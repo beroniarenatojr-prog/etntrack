@@ -1,0 +1,6 @@
+# Uploaded files are data, never code.
+# Refuse any request for a script file in this folder and the folders inside it,
+# so an uploaded script can never run.
+<FilesMatch "(?i)\.(php[0-9]?|phtml|phar|pht|phps|cgi|pl|py|asp|aspx|jsp|sh)$">
+    Require all denied
+</FilesMatch>

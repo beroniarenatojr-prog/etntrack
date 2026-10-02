@@ -2,242 +2,121 @@
 ob_start();
 date_default_timezone_set("Asia/Manila");
 
-$action = $_GET['action'];
-include 'admin_class.php';
+/*
+|--------------------------------------------------------------------------
+| AJAX ENTRY POINT
+|--------------------------------------------------------------------------
+| Every request from the pages comes through here as ajax.php?action=<name>.
+|
+| $actions lists each allowed action as: 'action' => array(who, method)
+|
+|   who = 'public'      anyone, even signed out (only the login form)
+|         'any'         any signed-in user (the method itself checks ownership)
+|         'admin'       administrators only
+|         'coordinator' extension coordinators only
+|
+| An action that is NOT in this list is refused, so a new action has to be
+| added here on purpose before it can be used. Actions that no page calls
+| are left out deliberately (login2, logout2, signup, update_activity_status,
+| save_criteria_question, get_class, get_report).
+*/
+
+$actions = array(
+
+    // Sign in / out
+    'login'                  => array('public', 'login'),
+    'logout'                 => array('any',    'logout'),
+
+    // Activities
+    'activity_counts'        => array('any',         'activity_counts'),
+    'activity_table'         => array('any',         'activity_table'),
+    'check_activity_conflict'=> array('any',         'check_activity_conflict'),
+    'calendar_events'        => array('any',         'calendar_events'),
+    'calendar_ics'           => array('any',         'calendar_ics'),
+    'bulk_activity_action'   => array('any',         'bulk_activity_action'),
+    'save_activity'          => array('coordinator', 'save_activity'),
+    'update_activity'        => array('coordinator', 'update_activity'),
+    'set_activity_revision'  => array('admin',       'set_activity_revision'),
+
+    // Reports
+    'report_counts'          => array('any',         'report_counts'),
+    'delete_report'          => array('any',         'delete_report'),
+    'list_reports'           => array('coordinator', 'list_reports'),
+    'upload_report'          => array('coordinator', 'upload_report'),
+    'list_reportsadmin'      => array('admin',       'list_reportsadmin'),
+    'approve_reportadmin'    => array('admin',       'approve_report'),
+    'reject_reportadmin'     => array('admin',       'reject_report'),
+
+    // Own profile
+    'update_user'            => array('any', 'update_user'),
+
+    // Accounts
+    'save_user'              => array('admin', 'save_user'),
+    'delete_user'            => array('admin', 'delete_user'),
+    'save_faculty'           => array('admin', 'save_faculty'),
+    'delete_faculty'         => array('admin', 'delete_faculty'),
+
+    // Questionnaire setup
+    'save_criteria'          => array('admin', 'save_criteria'),
+    'delete_criteria'        => array('admin', 'delete_criteria'),
+    'save_criteria_order'    => array('admin', 'save_criteria_order'),
+    'save_question'          => array('admin', 'save_question'),
+    'delete_question'        => array('admin', 'delete_question'),
+    'save_question_order'    => array('admin', 'save_question_order'),
+
+    // Pages kept from the original template; not in the menu, admin only
+    'make_default'           => array('admin', 'make_default'),
+    'save_academic'          => array('admin', 'save_academic'),
+    'delete_academic'        => array('admin', 'delete_academic'),
+    'save_class'             => array('admin', 'save_class'),
+    'delete_class'           => array('admin', 'delete_class'),
+    'save_subject'           => array('admin', 'save_subject'),
+    'delete_subject'         => array('admin', 'delete_subject'),
+    'save_student'           => array('admin', 'save_student'),
+    'delete_student'         => array('admin', 'delete_student'),
+    'save_restriction'       => array('admin', 'save_restriction'),
+    'save_evaluation'        => array('admin', 'save_evaluation')
+);
+
+$action = isset($_GET['action']) ? (string)$_GET['action'] : '';
+
+if(!isset($actions[$action])){
+    http_response_code(404);
+    echo "Unknown action.";
+    ob_end_flush();
+    exit;
+}
+
+list($who, $method) = $actions[$action];
+
+include 'admin_class.php';   // starts the session and defines the Action class
+
+$login_id = isset($_SESSION['login_id']) ? (int)$_SESSION['login_id'] : 0;
+$login_type = isset($_SESSION['login_type']) ? (int)$_SESSION['login_type'] : 0;   // 1 = administrator, 2 = coordinator
+
+if($who !== 'public'){
+
+    if($login_id <= 0){
+        http_response_code(401);
+        echo "Your session has expired. Please log in again.";
+        ob_end_flush();
+        exit;
+    }
+
+    if(($who === 'admin' && $login_type !== 1) || ($who === 'coordinator' && $login_type !== 2)){
+        http_response_code(403);
+        echo "You are not allowed to do that.";
+        ob_end_flush();
+        exit;
+    }
+}
+
 $crud = new Action();
-if($action == 'login'){
-	$login = $crud->login();
-	if($login)
-		echo $login;
-}
-if($action == 'login2'){
-	$login = $crud->login2();
-	if($login)
-		echo $login;
-}
-if($action == 'logout'){
-	$logout = $crud->logout();
-	if($logout)
-		echo $logout;
-}
-if($action == 'logout2'){
-	$logout = $crud->logout2();
-	if($logout)
-		echo $logout;
+$result = $crud->$method();
+
+if($result){
+    echo $result;
 }
 
-
-
-if($action == 'activity_counts'){
-    echo $crud->activity_counts();
-}
-
-if($action == 'check_activity_conflict'){
-    echo $crud->check_activity_conflict();
-}
-
-if($action == 'calendar_events'){
-    echo $crud->calendar_events();
-}
-
-if($action == 'calendar_ics'){
-    echo $crud->calendar_ics();
-}
-
-if($action == 'activity_table'){
-    echo $crud->activity_table();
-}
-
-if($action == 'bulk_activity_action'){
-    echo $crud->bulk_activity_action();
-}
-
-if($action == 'set_activity_revision'){
-    echo $crud->set_activity_revision();
-}
-
-if($action == 'update_activity'){
-    echo $crud->update_activity();
-}
-
-
-
-if($action == 'approve_reportadmin'){
-    echo $crud->approve_report();
-}
-
-if($action == 'reject_reportadmin'){
-    echo $crud->reject_report();
-}
-
-if($action == 'signup'){
-	$save = $crud->signup();
-	if($save)
-		echo $save;
-}
-
-if($action == 'list_reports'){
-    echo $crud->list_reports();
-}
-
-if($action == 'list_reportsadmin'){
-    echo $crud->list_reportsadmin();
-}
-
-if($action == 'report_counts'){
-    echo $crud->report_counts();
-}
-
-
-if($action == 'save_user'){
-	$save = $crud->save_user();
-	if($save)
-		echo $save;
-}
-
-if($action == 'delete_report'){
-    echo $crud->delete_report();
-}
-
-if($action == "update_activity_status"){
-    $crud = new Action();
-    echo $crud->update_activity_status();
-}
-
-
-
-if($action == 'save_activity'){
-    $save = $crud->save_activity();
-    if($save)
-        echo $save;
-}
-if($action == 'update_user'){
-	$save = $crud->update_user();
-	if($save)
-		echo $save;
-}
-if($action == 'delete_user'){
-	$save = $crud->delete_user();
-	if($save)
-		echo $save;
-}
-if($action == 'save_subject'){
-	$save = $crud->save_subject();
-	if($save)
-		echo $save;
-}
-if($action == 'delete_subject'){
-	$save = $crud->delete_subject();
-	if($save)
-		echo $save;
-}
-if($action == 'save_class'){
-	$save = $crud->save_class();
-	if($save)
-		echo $save;
-}
-if($action == 'delete_class'){
-	$save = $crud->delete_class();
-	if($save)
-		echo $save;
-}
-if($action == 'save_academic'){
-	$save = $crud->save_academic();
-	if($save)
-		echo $save;
-}
-if($action == 'delete_academic'){
-	$save = $crud->delete_academic();
-	if($save)
-		echo $save;
-}
-if($action == 'make_default'){
-	$save = $crud->make_default();
-	if($save)
-		echo $save;
-}
-if($action == 'save_criteria'){
-	$save = $crud->save_criteria();
-	if($save)
-		echo $save;
-}
-if($action == 'delete_criteria'){
-	$save = $crud->delete_criteria();
-	if($save)
-		echo $save;
-}
-if($action == 'save_question'){
-	$save = $crud->save_question();
-	if($save)
-		echo $save;
-}
-if($action == 'delete_question'){
-	$save = $crud->delete_question();
-	if($save)
-		echo $save;
-}
-
-if($action == 'save_criteria_question'){
-	$save = $crud->save_criteria_question();
-	if($save)
-		echo $save;
-}
-if($action == 'save_criteria_order'){
-	$save = $crud->save_criteria_order();
-	if($save)
-		echo $save;
-}
-
-if($action == 'save_question_order'){
-	$save = $crud->save_question_order();
-	if($save)
-		echo $save;
-}
-if($action == 'save_faculty'){
-	$save = $crud->save_faculty();
-	if($save)
-		echo $save;
-}
-if($action == 'delete_faculty'){
-	$save = $crud->delete_faculty();
-	if($save)
-		echo $save;
-}
-if($action == 'save_student'){
-	$save = $crud->save_student();
-	if($save)
-		echo $save;
-}
-if($action == 'delete_student'){
-	$save = $crud->delete_student();
-	if($save)
-		echo $save;
-}
-if($action == 'save_restriction'){
-	$save = $crud->save_restriction();
-	if($save)
-		echo $save;
-}
-if($action == 'save_evaluation'){
-	$save = $crud->save_evaluation();
-	if($save)
-		echo $save;
-}
-if($action == 'upload_report'){
-    $save = $crud->upload_report();
-    if($save)
-        echo $save;
-}
-
-if($action == 'get_class'){
-	$get = $crud->get_class();
-	if($get)
-		echo $get;
-}
-if($action == 'get_report'){
-	$get = $crud->get_report();
-	if($get)
-		echo $get;
-}
 ob_end_flush();
 ?>

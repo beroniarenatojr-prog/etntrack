@@ -308,20 +308,18 @@ $trend_values = array();
 $query = $conn->query("
     SELECT
 
-        DATE(el.date_taken) AS evaluation_date,
+        DATE(submitted_at) AS evaluation_date,
 
-        AVG(ea.rate) AS average_rating
+        AVG(rate) AS average_rating
 
-    FROM evaluation_list el
+    FROM evaluation_answers
 
-    INNER JOIN evaluation_answers ea
-        ON ea.evaluation_id = el.evaluation_id
+    WHERE rate BETWEEN 1 AND 5
+    AND submitted_at IS NOT NULL
 
-    WHERE ea.rate BETWEEN 1 AND 5
+    GROUP BY DATE(submitted_at)
 
-    GROUP BY DATE(el.date_taken)
-
-    ORDER BY DATE(el.date_taken) ASC
+    ORDER BY DATE(submitted_at) ASC
 ");
 
 if($query){
@@ -449,7 +447,7 @@ if($total_ratings > 0){
 
                 </h2>
 
-                <p>Evaluators</p>
+                <p>Extension Coordinators</p>
 
             </div>
 
@@ -480,8 +478,9 @@ if($total_ratings > 0){
 
                     $result =
                         $conn->query("
-                            SELECT COUNT(*) AS total
-                            FROM student_list
+                            SELECT COUNT(DISTINCT evaluation_id) AS total
+                            FROM evaluation_answers
+                            WHERE activity_id > 0
                         ");
 
                     $row =
@@ -495,7 +494,7 @@ if($total_ratings > 0){
 
                 </h2>
 
-                <p>Extension Coordinators</p>
+                <p>Evaluators</p>
 
             </div>
 
@@ -541,7 +540,7 @@ if($total_ratings > 0){
 
                 </h2>
 
-                <p>Total Users</p>
+                <p>Administrators</p>
 
             </div>
 
