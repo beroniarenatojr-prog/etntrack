@@ -197,6 +197,23 @@ trait ProjectActions {
 		return array($name, '');
 	}
 
+	// Deletes the file a record is holding now, before a new one replaces it,
+	// so replaced files do not pile up on the server
+	private function remove_old_file($table, $id){
+
+		$row = $this->db->query("SELECT file_name FROM `$table` WHERE id = ".(int)$id)->fetch_assoc();
+
+		if(!$row || empty($row['file_name'])){
+			return;
+		}
+
+		$path = 'uploads/documents/'.basename($row['file_name']);
+
+		if(is_file($path)){
+			unlink($path);
+		}
+	}
+
 	/* =====================================================================
 	   PROJECTS
 	===================================================================== */
@@ -354,10 +371,27 @@ trait ProjectActions {
 		// Activities stay, they simply stop belonging to a project
 		$this->db->query("UPDATE activities SET project_id = NULL WHERE project_id = $id");
 
+		$tables = array('designations');
+
 		foreach($this->doc_types() as $type){
-			$this->db->query("DELETE FROM {$type['table']} WHERE project_id = $id");
+			$tables[] = $type['table'];
 		}
-		$this->db->query("DELETE FROM designations WHERE project_id = $id");
+
+		foreach($tables as $table){
+
+			// Delete the attached files too, or they stay on the server for good
+			$qry = $this->db->query("SELECT file_name FROM `$table` WHERE project_id = $id AND file_name IS NOT NULL AND file_name <> ''");
+
+			while($row = $qry->fetch_assoc()){
+				$path = 'uploads/documents/'.basename($row['file_name']);
+				if(is_file($path)){
+					unlink($path);
+				}
+			}
+
+			$this->db->query("DELETE FROM `$table` WHERE project_id = $id");
+		}
+
 		$this->db->query("DELETE FROM projects WHERE id = $id");
 
 		return 1;
@@ -607,6 +641,9 @@ trait ProjectActions {
 			if($error){
 				return $error;
 			}
+			if($id){
+				$this->remove_old_file($type['table'], $id);
+			}
 			$set[] = "file_name = '$file_name'";
 		}
 
@@ -758,6 +795,9 @@ trait ProjectActions {
 			list($file_name, $error) = $this->store_document_file($_FILES['document']);
 			if($error){
 				return $error;
+			}
+			if($id){
+				$this->remove_old_file('designations', $id);
 			}
 			$set[] = "file_name = '$file_name'";
 		}

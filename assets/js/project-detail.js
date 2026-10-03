@@ -24,11 +24,16 @@
         return esc(text).replace(/\n/g, '<br>');
     }
 
+    var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    // Built by hand so the year is always four digits, whatever the browser's locale
     function date_display(value){
         if(!value || value === '0000-00-00') return '';
-        var d = new Date(value + 'T00:00:00');
-        if(isNaN(d)) return esc(value);
-        return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
+        var parts = String(value).substring(0, 10).split('-');
+        if(parts.length !== 3) return esc(value);
+        var month = MONTHS[parseInt(parts[1], 10) - 1];
+        if(!month) return esc(value);
+        return month + ' ' + parseInt(parts[2], 10) + ', ' + parts[0];
     }
 
     /* =================================================================
@@ -203,7 +208,11 @@
                      : stage.state === 'attention' ? '<i class="fas fa-exclamation"></i>'
                      : '<i class="fas ' + (icons[stage.key] || 'fa-circle') + '"></i>';
 
-            html += '<div class="pj-step ' + stage.state + '">' +
+            // The six pre-activity stages can be clicked to open that step
+            var jumpable = PRE_STEPS.indexOf(stage.key) !== -1;
+
+            html += '<div class="pj-step ' + stage.state + (jumpable ? ' pj-step-link' : '') + '"' +
+                        (jumpable ? ' data-jump="' + stage.key + '" title="Open ' + esc(stage.label) + '"' : '') + '>' +
                         '<div class="pj-dot">' + mark + '</div>' +
                         '<div class="pj-step-label">' + esc(stage.label) +
                         '<span class="pj-step-state">' + esc(stage.status_label) + '</span>' +
@@ -260,9 +269,8 @@
 
     function doc_row(type, doc){
 
-        var file = doc.file_name
-            ? '<a class="pj-mini" target="_blank" href="project_file.php?type=' + type + '&id=' + doc.id + '">' +
-              '<i class="fas fa-paperclip"></i> File</a>'
+        var attached = doc.file_name
+            ? '<span class="pj-clip" title="A file is attached"><i class="fas fa-paperclip"></i></span>'
             : '';
 
         var review = '';
@@ -278,88 +286,361 @@
 
         return '<div class="pj-doc">' +
                    '<div class="pj-doc-main">' +
-                       '<div class="pj-doc-title">' + esc(doc.title || DOCS[type].label) + '</div>' +
+                       '<div class="pj-doc-title">' + esc(doc.title || DOCS[type].label) + ' ' + attached + '</div>' +
                        '<div class="pj-doc-meta">Updated ' + esc((doc.updated_at || '').substring(0, 10)) + '</div>' +
                        remarks +
                    '</div>' +
                    '<span class="pj-status ' + esc(doc.status) + '">' + esc(doc.status_label) + '</span>' +
                    '<div class="pj-doc-actions">' +
-                       file + review +
+                       '<button type="button" class="pj-mini" data-view="' + type + '" data-id="' + doc.id + '">' +
+                       '<i class="fas fa-eye"></i> View</button>' +
+                       review +
                        '<button type="button" class="pj-mini" data-edit="' + type + '" data-id="' + doc.id + '"><i class="fas fa-pen"></i></button>' +
                        '<button type="button" class="pj-mini danger" data-remove="' + type + '" data-id="' + doc.id + '"><i class="fas fa-trash-alt"></i></button>' +
                    '</div>' +
                '</div>';
     }
 
-    function render_pre(){
+    /* =================================================================
+       READING A DOCUMENT
+       Shows what was filled in, and previews the attached file when the
+       browser can display it.
+    ================================================================= */
 
-        var html = '';
+    /* Word documents are turned into readable HTML in the browser by Mammoth,
+       which is fetched only when a .docx actually needs showing. */
+    var mammothLoading = null;
 
-        $.each(DOCS, function(type, config){
+    function load_mammoth(){
 
-            var list = data.documents[type] || [];
-
-            html += '<div class="mb-4">' +
-                        '<h3 class="pj-section-title"><i class="fas ' + config.icon + '"></i> ' + config.label + '</h3>' +
-                        '<p class="pj-section-sub">' + config.blurb + '</p>';
-
-            if(list.length){
-                $.each(list, function(i, doc){ html += doc_row(type, doc); });
-            }else{
-                html += '<div class="pj-empty"><i class="fas ' + config.icon + '"></i>' +
-                        'No ' + config.label.toLowerCase() + ' yet.</div>';
-            }
-
-            html += '<button type="button" class="pj-mini mt-2" data-add="' + type + '">' +
-                    '<i class="fas fa-plus"></i> Add ' + config.label + '</button>' +
-                    '</div>';
-
-            // Designation sits between Proposal and Conduct Preparation
-            if(type === 'proposal'){
-                html += render_designations();
-            }
-        });
-
-        $('#pj-pre').html(html);
-    }
-
-    function render_designations(){
-
-        var html = '<div class="mb-4">' +
-                   '<h3 class="pj-section-title"><i class="fas fa-user-tag"></i> Designation</h3>' +
-                   '<p class="pj-section-sub">Who is assigned to this project, and as what.</p>';
-
-        if(data.designations.length){
-
-            $.each(data.designations, function(i, person){
-
-                var file = person.file_name
-                    ? '<a class="pj-mini" target="_blank" href="project_file.php?type=designation&id=' + person.id + '">' +
-                      '<i class="fas fa-paperclip"></i> File</a>'
-                    : '';
-
-                html += '<div class="pj-doc">' +
-                            '<div class="pj-doc-main">' +
-                                '<div class="pj-doc-title">' + esc(person.personnel_name) + '</div>' +
-                                '<div class="pj-doc-meta">' + esc(person.role) +
-                                (person.responsibility ? ' &middot; ' + esc(person.responsibility) : '') + '</div>' +
-                            '</div>' +
-                            '<span class="pj-status ' + esc(person.status) + '">' +
-                            esc(person.status === 'ended' ? 'Ended' : 'Active') + '</span>' +
-                            '<div class="pj-doc-actions">' + file +
-                                '<button type="button" class="pj-mini" data-edit-person="' + person.id + '"><i class="fas fa-pen"></i></button>' +
-                                '<button type="button" class="pj-mini danger" data-remove-person="' + person.id + '"><i class="fas fa-trash-alt"></i></button>' +
-                            '</div>' +
-                        '</div>';
-            });
-
-        }else{
-            html += '<div class="pj-empty"><i class="fas fa-user-tag"></i>Nobody is assigned to this project yet.</div>';
+        if(window.mammoth){
+            return $.Deferred().resolve().promise();
         }
 
-        return html + '<button type="button" class="pj-mini mt-2" data-add-person="1">' +
-               '<i class="fas fa-plus"></i> Assign Someone</button></div>';
+        if(!mammothLoading){
+            mammothLoading = $.ajax({
+                url: 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.13.0/mammoth.browser.min.js',
+                dataType: 'script',
+                cache: true,
+                timeout: 20000
+            });
+        }
+
+        return mammothLoading;
     }
+
+    function show_docx(url, target){
+
+        var box = $(target);
+
+        box.html('<div class="pj-empty"><i class="fas fa-spinner fa-spin"></i>Opening the Word document...</div>');
+
+        load_mammoth().done(function(){
+
+            fetch(url, { credentials: 'same-origin' })
+                .then(function(response){
+                    if(!response.ok) throw new Error('could not be read');
+                    return response.arrayBuffer();
+                })
+                .then(function(buffer){
+                    return window.mammoth.convertToHtml({ arrayBuffer: buffer });
+                })
+                .then(function(result){
+
+                    var html = $.trim(result.value);
+
+                    if(!html){
+                        box.html('<div class="pj-empty"><i class="fas fa-file-word"></i>' +
+                                 'This Word document has no text to show. Use Download to open it.</div>');
+                        return;
+                    }
+
+                    box.html('<div class="pj-docx">' + html + '</div>');
+                })
+                .catch(function(){
+                    box.html('<div class="pj-empty"><i class="fas fa-file-word"></i>' +
+                             'This Word document could not be shown here. Use Download to open it.</div>');
+                });
+
+        }).fail(function(){
+            box.html('<div class="pj-empty"><i class="fas fa-file-word"></i>' +
+                     'The Word viewer could not be loaded, which usually means no internet connection. ' +
+                     'Use Download to open the file.</div>');
+        });
+    }
+
+    function file_preview(type, id, fileName){
+
+        if(!fileName){
+            return '<div class="pj-empty"><i class="fas fa-paperclip"></i>No file is attached to this document.</div>';
+        }
+
+        var url = 'project_file.php?type=' + type + '&id=' + id;
+        var extension = String(fileName).split('.').pop().toLowerCase();
+
+        var expand = '<button type="button" class="pj-mini" data-fullscreen="1">' +
+                     '<i class="fas fa-expand"></i> Full screen</button>';
+
+        var buttons = '<div class="pj-doc-actions mt-2">' +
+                      '<a class="pj-mini" target="_blank" href="' + url + '"><i class="fas fa-external-link-alt"></i> Open in a new tab</a>' +
+                      '<a class="pj-mini" href="' + url + '&download=1"><i class="fas fa-download"></i> Download</a>' +
+                      '</div>';
+
+        // Wrapped so the whole preview can be blown up to fill the screen
+        function wrap(inner){
+            return '<div class="pj-preview-wrap">' +
+                       '<button type="button" class="pj-expand-btn" data-fullscreen="1" title="Full screen">' +
+                       '<i class="fas fa-expand"></i></button>' +
+                       inner +
+                   '</div>' +
+                   '<div class="pj-doc-actions mt-2">' +
+                       expand +
+                       '<a class="pj-mini" target="_blank" href="' + url + '"><i class="fas fa-external-link-alt"></i> Open in a new tab</a>' +
+                       '<a class="pj-mini" href="' + url + '&download=1"><i class="fas fa-download"></i> Download</a>' +
+                   '</div>';
+        }
+
+        if(extension === 'pdf'){
+            return wrap('<iframe class="pj-preview" src="' + url + '#view=FitH" title="Attached document"></iframe>');
+        }
+
+        if(['jpg','jpeg','png','webp'].indexOf(extension) !== -1){
+            return wrap('<img class="pj-preview-img" src="' + url + '" alt="Attached picture">');
+        }
+
+        if(extension === 'docx'){
+            // Filled in by show_docx() once the dialog is on screen
+            return wrap('<div id="pj-docx-box" data-url="' + url + '"></div>');
+        }
+
+        var names = { doc: 'older Word (.doc)', xls: 'Excel', xlsx: 'Excel', ppt: 'PowerPoint', pptx: 'PowerPoint' };
+
+        return '<div class="pj-empty"><i class="fas fa-file-alt"></i>' +
+               'This is ' + esc(names[extension] || extension.toUpperCase()) + ', which a browser cannot display. ' +
+               'Use Download to open it' +
+               (extension === 'doc' ? ', or re-save it as .docx to read it here' : '') + '.' +
+               '</div>' + buttons;
+    }
+
+    function open_doc_view(type, doc){
+
+        var isPerson = type === 'designation';
+        var config = isPerson ? { label: 'Designation', fields: DESIGNATION_FIELDS } : DOCS[type];
+
+        var html = '<div class="pj-view-head">' +
+                   '<span class="pj-status ' + esc(doc.status) + '">' +
+                   esc(doc.status_label || (doc.status === 'ended' ? 'Ended' : 'Active')) + '</span>' +
+                   '<span class="pj-muted">Last updated ' + esc((doc.updated_at || '').substring(0, 16)) + '</span>' +
+                   '</div>';
+
+        if(doc.admin_remarks){
+            html += '<div class="pj-note"><b>Extension Office:</b> ' + nl2br(doc.admin_remarks) + '</div>';
+        }
+
+        // What was filled in. Empty fields are left out so the view stays readable.
+        var rows = '';
+
+        $.each(config.fields, function(i, field){
+
+            var value = doc[field.name];
+
+            if(value === null || value === undefined || String(value).trim() === ''){
+                return;
+            }
+
+            if(field.type === 'check'){
+                value = String(value) === '1' ? 'Yes' : 'No';
+            }else if(field.type === 'date'){
+                value = date_display(value);
+            }else if(field.type === 'number' && field.name === 'budget'){
+                value = 'PHP ' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 });
+            }
+
+            rows += '<div class="pj-view-row">' +
+                        '<dt>' + esc(field.label) + '</dt>' +
+                        '<dd>' + nl2br(value) + '</dd>' +
+                    '</div>';
+        });
+
+        html += rows
+            ? '<dl class="pj-view-list">' + rows + '</dl>'
+            : '<div class="pj-empty"><i class="fas fa-align-left"></i>Nothing has been filled in yet.</div>';
+
+        html += '<h3 class="pj-section-title mt-4"><i class="fas fa-paperclip"></i> Attached File</h3>' +
+                file_preview(type, doc.id, doc.file_name);
+
+        $('#pj-view-modal .modal-title').text(config.label);
+        $('#pj-view-body').html(html);
+
+        // The Edit button carries on from here
+        $('#pj-view-edit').off('click').on('click', function(){
+            $('#pj-view-modal').modal('hide');
+            setTimeout(function(){
+                if(isPerson){ open_person_form(doc); } else { open_doc_form(type, doc); }
+            }, 300);
+        });
+
+        $('#pj-view-modal').modal('show');
+
+        // A Word document is rendered once the dialog is up
+        var docx = $('#pj-docx-box');
+
+        if(docx.length){
+            show_docx(docx.data('url'), docx);
+        }
+    }
+
+    /* The six pre-activity steps, in the order the Extension Office works
+       through them. 'designation' is a list of people rather than a document. */
+    var PRE_STEPS = ['assessment', 'moa', 'capsule', 'proposal', 'designation', 'preparation'];
+
+    var currentStep = 'assessment';   // which step the right-hand side is showing
+
+    function step_config(key){
+
+        if(key === 'designation'){
+            return {
+                label: 'Designation',
+                icon: 'fa-user-tag',
+                blurb: 'Who is assigned to this project, and as what.',
+                addLabel: 'Assign Someone'
+            };
+        }
+
+        return $.extend({ addLabel: 'Add ' + DOCS[key].label }, DOCS[key]);
+    }
+
+    // What the left-hand list shows against each step
+    function step_state(key){
+
+        var stage = data.lifecycle.filter(function(s){ return s.key === key; })[0];
+
+        if(!stage){
+            return { state: 'waiting', note: '' };
+        }
+
+        return { state: stage.state, note: stage.status_label };
+    }
+
+    function render_pre(){
+
+        if(PRE_STEPS.indexOf(currentStep) === -1){
+            currentStep = 'assessment';
+        }
+
+        // ---- the step list ----
+        var nav = '';
+
+        $.each(PRE_STEPS, function(i, key){
+
+            var config = step_config(key);
+            var state = step_state(key);
+
+            var mark = state.state === 'done' ? '<i class="fas fa-check"></i>'
+                     : state.state === 'attention' ? '<i class="fas fa-exclamation"></i>'
+                     : (i + 1);
+
+            var count = key === 'designation'
+                ? data.designations.length
+                : (data.documents[key] || []).length;
+
+            nav += '<button type="button" class="pj-step-item ' + state.state +
+                       (key === currentStep ? ' active' : '') + '" data-step="' + key + '">' +
+                       '<span class="pj-step-num">' + mark + '</span>' +
+                       '<span class="pj-step-text">' +
+                           '<span class="pj-step-name">' + esc(config.label) + '</span>' +
+                           '<span class="pj-step-note">' + esc(state.note) + '</span>' +
+                       '</span>' +
+                       (count ? '<span class="pj-step-count">' + count + '</span>' : '') +
+                   '</button>';
+        });
+
+        // ---- the selected step ----
+        var config = step_config(currentStep);
+        var isPerson = currentStep === 'designation';
+        var list = isPerson ? data.designations : (data.documents[currentStep] || []);
+
+        var body = '<div class="pj-step-head">' +
+                       '<h3 class="pj-section-title"><i class="fas ' + config.icon + '"></i> ' + esc(config.label) + '</h3>' +
+                       '<p class="pj-section-sub">' + esc(config.blurb) + '</p>' +
+                       '<button type="button" class="pj-btn pj-btn-green pj-step-add" ' +
+                       (isPerson ? 'data-add-person="1"' : 'data-add="' + currentStep + '"') + '>' +
+                       '<i class="fas fa-plus"></i> ' + esc(config.addLabel) + '</button>' +
+                   '</div>';
+
+        if(list.length){
+            $.each(list, function(i, item){
+                body += isPerson ? person_row(item) : doc_row(currentStep, item);
+            });
+        }else{
+            body += '<div class="pj-empty"><i class="fas ' + config.icon + '"></i>' +
+                    (isPerson ? 'Nobody is assigned to this project yet.'
+                              : 'No ' + config.label.toLowerCase() + ' yet.') +
+                    '</div>';
+        }
+
+        // ---- previous / next, so the six steps can be walked through ----
+        var index = PRE_STEPS.indexOf(currentStep);
+
+        body += '<div class="pj-step-move">' +
+                (index > 0
+                    ? '<button type="button" class="pj-mini" data-step="' + PRE_STEPS[index - 1] + '">' +
+                      '<i class="fas fa-arrow-left"></i> ' + esc(step_config(PRE_STEPS[index - 1]).label) + '</button>'
+                    : '<span></span>') +
+                (index < PRE_STEPS.length - 1
+                    ? '<button type="button" class="pj-mini" data-step="' + PRE_STEPS[index + 1] + '">' +
+                      esc(step_config(PRE_STEPS[index + 1]).label) + ' <i class="fas fa-arrow-right"></i></button>'
+                    : '<span></span>') +
+                '</div>';
+
+        $('#pj-pre').html(
+            '<div class="pj-split">' +
+                '<nav class="pj-steps" aria-label="Pre-activity steps">' + nav + '</nav>' +
+                '<div class="pj-step-body">' + body + '</div>' +
+            '</div>'
+        );
+    }
+
+    function person_row(person){
+
+        var attached = person.file_name
+            ? '<span class="pj-clip" title="A file is attached"><i class="fas fa-paperclip"></i></span>'
+            : '';
+
+        return '<div class="pj-doc">' +
+                   '<div class="pj-doc-main">' +
+                       '<div class="pj-doc-title">' + esc(person.personnel_name) + ' ' + attached + '</div>' +
+                       '<div class="pj-doc-meta">' + esc(person.role) +
+                       (person.responsibility ? ' &middot; ' + esc(person.responsibility) : '') + '</div>' +
+                   '</div>' +
+                   '<span class="pj-status ' + esc(person.status) + '">' +
+                   esc(person.status === 'ended' ? 'Ended' : 'Active') + '</span>' +
+                   '<div class="pj-doc-actions">' +
+                       '<button type="button" class="pj-mini" data-view-person="' + person.id + '"><i class="fas fa-eye"></i> View</button>' +
+                       '<button type="button" class="pj-mini" data-edit-person="' + person.id + '"><i class="fas fa-pen"></i></button>' +
+                       '<button type="button" class="pj-mini danger" data-remove-person="' + person.id + '"><i class="fas fa-trash-alt"></i></button>' +
+                   '</div>' +
+               '</div>';
+    }
+
+    // Choosing a step, from the list or the previous / next buttons
+    $(document).on('click', '[data-step]', function(){
+        currentStep = $(this).data('step');
+        render_pre();
+        var panel = document.querySelector('.pj-step-body');
+        if(panel && window.innerWidth < 992){
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+
+    // Clicking a stage in the timeline jumps to that step
+    $(document).on('click', '.pj-step[data-jump]', function(){
+        var key = $(this).data('jump');
+        if(PRE_STEPS.indexOf(key) === -1) return;
+        currentStep = key;
+        $('.pj-tab[data-panel="pre"]').click();
+        render_pre();
+    });
 
     function render_activities(){
 
@@ -402,7 +683,7 @@
                                 '<div class="pj-doc-meta">' + config.label + '</div>' +
                             '</div>' +
                             '<div class="pj-doc-actions">' +
-                                '<a class="pj-mini" target="_blank" href="project_file.php?type=' + type + '&id=' + doc.id + '"><i class="fas fa-eye"></i> View</a>' +
+                                '<button type="button" class="pj-mini" data-view="' + type + '" data-id="' + doc.id + '"><i class="fas fa-eye"></i> View</button>' +
                                 '<a class="pj-mini" href="project_file.php?type=' + type + '&id=' + doc.id + '&download=1"><i class="fas fa-download"></i></a>' +
                             '</div>' +
                         '</div>';
@@ -417,7 +698,7 @@
                             '<div class="pj-doc-meta">Designation</div>' +
                         '</div>' +
                         '<div class="pj-doc-actions">' +
-                            '<a class="pj-mini" target="_blank" href="project_file.php?type=designation&id=' + person.id + '"><i class="fas fa-eye"></i> View</a>' +
+                            '<button type="button" class="pj-mini" data-view-person="' + person.id + '"><i class="fas fa-eye"></i> View</button>' +
                             '<a class="pj-mini" href="project_file.php?type=designation&id=' + person.id + '&download=1"><i class="fas fa-download"></i></a>' +
                         '</div>' +
                     '</div>';
@@ -568,6 +849,19 @@
         if(doc) open_doc_form(type, doc);
     });
 
+    $(document).on('click', '[data-view]', function(){
+        var type = $(this).data('view');
+        var id = $(this).data('id');
+        var doc = (data.documents[type] || []).filter(function(d){ return d.id == id; })[0];
+        if(doc) open_doc_view(type, doc);
+    });
+
+    $(document).on('click', '[data-view-person]', function(){
+        var id = $(this).data('view-person');
+        var person = data.designations.filter(function(p){ return p.id == id; })[0];
+        if(person) open_doc_view('designation', person);
+    });
+
     $(document).on('click', '[data-add-person]', function(){
         open_person_form(null);
     });
@@ -672,6 +966,62 @@
 
         });
 
+    });
+
+    /* ---------------- full screen preview ---------------- */
+
+    // Uses the browser's own full screen when it is available, and falls back
+    // to filling the window with CSS when it is not.
+    $(document).on('click', '[data-fullscreen]', function(){
+
+        var wrap = $(this).closest('.pj-view-row, .modal-body').find('.pj-preview-wrap').first();
+
+        if(!wrap.length){
+            wrap = $('.pj-preview-wrap').first();
+        }
+
+        if(!wrap.length) return;
+
+        var element = wrap[0];
+
+        if(document.fullscreenElement || document.webkitFullscreenElement){
+            (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+            return;
+        }
+
+        var request = element.requestFullscreen || element.webkitRequestFullscreen;
+
+        if(request){
+            var attempt = request.call(element);
+            if(attempt && attempt.catch){
+                attempt.catch(function(){ wrap.addClass('pj-expanded'); });
+            }
+            return;
+        }
+
+        wrap.addClass('pj-expanded');
+    });
+
+    // Esc leaves full screen. Caught before Bootstrap sees it, so the first Esc
+    // shrinks the preview rather than closing the whole dialog.
+    document.addEventListener('keydown', function(e){
+
+        if(e.key !== 'Escape') return;
+
+        if(document.querySelector('.pj-preview-wrap.pj-expanded')){
+            e.stopPropagation();
+            e.preventDefault();
+            $('.pj-preview-wrap.pj-expanded').removeClass('pj-expanded');
+        }
+
+    }, true);
+
+    // Closing the dialog must never leave the page stuck in full screen
+    $(document).on('hide.bs.modal', '#pj-view-modal', function(){
+        $('.pj-preview-wrap').removeClass('pj-expanded');
+        if(document.fullscreenElement || document.webkitFullscreenElement){
+            (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+        }
     });
 
     /* ---------------- tabs ---------------- */

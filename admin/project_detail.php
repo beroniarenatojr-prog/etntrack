@@ -107,6 +107,33 @@ if($project_id <= 0){
 </div>
 
 
+<!-- READING A DOCUMENT -->
+
+<div class="modal fade pj-modal" id="pj-view-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Document</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body" id="pj-view-body"></div>
+
+            <div class="modal-footer">
+                <button type="button" class="pj-btn pj-btn-light" data-dismiss="modal">Close</button>
+                <button type="button" class="pj-btn pj-btn-green" id="pj-view-edit">
+                    <i class="fas fa-pen"></i> Edit
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
 <!-- DOCUMENT FORM -->
 
 <div class="modal fade pj-modal" id="pj-doc-modal" tabindex="-1" role="dialog">

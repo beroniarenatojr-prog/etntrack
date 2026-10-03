@@ -165,6 +165,44 @@
 
 }
 
+
+/* Dropdown arrow: points right when the menu is closed and turns down when it
+   opens. The template rotates it the other way, so this overrides that. */
+
+.nav-sidebar .nav-link i.right{
+
+    transition:transform .25s ease;
+
+}
+
+.nav-sidebar .menu-open > .nav-link i.right{
+
+    transform:rotate(90deg) !important;
+
+}
+
+
+/* Items inside a dropdown: indented a little and in a lighter weight, so the
+   group heading above them stays the thing you read first. */
+
+.nav-sidebar .nav-treeview .nav-link{
+
+    padding-left:36px;
+
+    font-size:14px;
+
+}
+
+.nav-sidebar .nav-treeview .nav-icon{
+
+    font-size:13px;
+
+    opacity:.85;
+
+    width:18px;
+
+}
+
 </style>
 
 
@@ -239,7 +277,7 @@ class="nav-link">
 
 <p>
 Evaluation
-<i class="right fas fa-angle-down"></i>
+<i class="right fas fa-angle-right"></i>
 </p>
 
 </a>
@@ -253,7 +291,7 @@ Evaluation
 <a href="./index.php?page=questionnaire"
 class="nav-link tree-item nav-questionnaire">
 
-<i class="far fa-circle nav-icon"></i>
+<i class="fas fa-file-alt nav-icon"></i>
 <p>Questionnaires</p>
 
 </a>
@@ -266,7 +304,7 @@ class="nav-link tree-item nav-questionnaire">
 <a href="./index.php?page=criteria_list"
 class="nav-link tree-item nav-criteria_list">
 
-<i class="far fa-circle nav-icon"></i>
+<i class="fas fa-sliders-h nav-icon"></i>
 <p>Evaluation Criteria</p>
 
 </a>
@@ -293,7 +331,7 @@ class="nav-link">
 
 <p>
 Coordinators
-<i class="right fas fa-angle-down"></i>
+<i class="right fas fa-angle-right"></i>
 </p>
 
 </a>
@@ -307,7 +345,7 @@ Coordinators
 <a href="./index.php?page=new_faculty"
 class="nav-link tree-item nav-new_faculty">
 
-<i class="far fa-circle nav-icon"></i>
+<i class="fas fa-user-plus nav-icon"></i>
 <p>Add New</p>
 
 </a>
@@ -320,7 +358,7 @@ class="nav-link tree-item nav-new_faculty">
 <a href="./index.php?page=faculty_list"
 class="nav-link tree-item nav-faculty_list">
 
-<i class="far fa-circle nav-icon"></i>
+<i class="fas fa-address-book nav-icon"></i>
 <p>List</p>
 
 </a>
@@ -437,7 +475,7 @@ class="nav-link">
 
 <p>
 Users
-<i class="right fas fa-angle-down"></i>
+<i class="right fas fa-angle-right"></i>
 </p>
 
 
@@ -453,7 +491,7 @@ Users
 <a href="./index.php?page=new_user"
 class="nav-link tree-item nav-new_user">
 
-<i class="far fa-circle nav-icon"></i>
+<i class="fas fa-user-plus nav-icon"></i>
 
 <p>Add User</p>
 
@@ -468,7 +506,7 @@ class="nav-link tree-item nav-new_user">
 <a href="./index.php?page=user_list"
 class="nav-link tree-item nav-user_list">
 
-<i class="far fa-circle nav-icon"></i>
+<i class="fas fa-users nav-icon"></i>
 
 <p>User List</p>
 
@@ -483,7 +521,7 @@ class="nav-link tree-item nav-user_list">
 <a href="./index.php?page=system_update"
 class="nav-link tree-item nav-system_update">
 
-<i class="far fa-circle nav-icon"></i>
+<i class="fas fa-database nav-icon"></i>
 
 <p>System Update</p>
 
