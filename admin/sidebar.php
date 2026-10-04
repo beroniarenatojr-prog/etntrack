@@ -247,7 +247,7 @@
                     <a href="./"
                        class="nav-link nav-home">
 
-                        <i class="fas fa-home"></i>
+                        <i class="nav-icon fas fa-home"></i>
 
                         <p>Dashboard</p>
 
@@ -283,53 +283,18 @@ class="nav-link nav-questionnaire nav-criteria_list nav-manage_questionnaire nav
 
 
 
-<!-- FACULTY -->
+<!-- COORDINATORS (one link; "Add Coordinator" is on the list page) -->
 
-<li class="nav-item has-treeview">
+<li class="nav-item">
 
-<a href="#"
-class="nav-link">
+<a href="./index.php?page=faculty_list"
+class="nav-link nav-faculty_list nav-new_faculty nav-edit_faculty">
 
 <i class="nav-icon fas fa-chalkboard-teacher"></i>
 
-<p>
-Coordinators
-<i class="right fas fa-angle-right"></i>
-</p>
+<p>Coordinators</p>
 
 </a>
-
-
-<ul class="nav nav-treeview">
-
-
-<li>
-
-<a href="./index.php?page=new_faculty"
-class="nav-link tree-item nav-new_faculty">
-
-<i class="fas fa-user-plus nav-icon"></i>
-<p>Add New</p>
-
-</a>
-
-</li>
-
-
-<li>
-
-<a href="./index.php?page=faculty_list"
-class="nav-link tree-item nav-faculty_list">
-
-<i class="fas fa-address-book nav-icon"></i>
-<p>List</p>
-
-</a>
-
-</li>
-
-
-</ul>
 
 </li>
 
@@ -520,6 +485,9 @@ class="nav-link tree-item nav-system_update">
 </nav>
 
 </div>
+
+
+<?php $sidebar_icon_class = 'nav-icon'; include __DIR__.'/../sidebar_account.php'; ?>
 
 
 </aside>

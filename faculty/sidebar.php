@@ -320,6 +320,8 @@
 
     </div>
 
+    <?php $sidebar_icon_class = ''; include __DIR__.'/../sidebar_account.php'; ?>
+
 </aside>
 
 <script>
@@ -355,4 +357,4 @@ $(document).ready(function(){
 
 });
 
-</script>a
+</script>
