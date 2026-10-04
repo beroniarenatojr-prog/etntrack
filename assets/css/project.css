@@ -831,6 +831,38 @@ table.pj-table tbody td {
 
 .pj-form textarea.form-control { min-height: 86px; }
 
+/* the optional fields, folded away until they are wanted */
+
+.pj-more {
+    border-top: 1px solid #eef2f7;
+    margin-top: 6px;
+    padding-top: 12px;
+}
+
+.pj-more-toggle {
+    border: none;
+    background: none;
+    padding: 6px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d5b42;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pj-more-toggle:hover { filter: brightness(1.15); }
+
+.pj-more-toggle i {
+    transition: transform 0.18s ease;
+    font-size: 12px;
+}
+
+.pj-more-toggle.open i { transform: rotate(90deg); }
+
+.pj-more-body { padding-top: 10px; }
+
 .pj-modal .modal-content {
     border: none;
     border-radius: 18px;

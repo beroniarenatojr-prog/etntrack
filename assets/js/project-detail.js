@@ -46,10 +46,10 @@
             icon: 'fa-clipboard-list',
             blurb: 'What the community needs, established before anything is proposed.',
             fields: [
-                { name: 'title', label: 'Assessment Title', type: 'text', required: true },
-                { name: 'community', label: 'Community / Beneficiary', type: 'text' },
+                { name: 'title', label: 'Assessment Title', type: 'text', required: true, key: true },
+                { name: 'community', label: 'Community / Beneficiary', type: 'text', half: true, key: true },
+                { name: 'assessment_date', label: 'Date of Assessment', type: 'date', half: true, key: true },
                 { name: 'location', label: 'Location', type: 'text' },
-                { name: 'assessment_date', label: 'Date of Assessment', type: 'date' },
                 { name: 'assessors', label: 'Assessors', type: 'textarea', hint: 'Who carried out the assessment.' },
                 { name: 'identified_needs', label: 'Identified Needs / Problems', type: 'textarea' },
                 { name: 'findings', label: 'Findings', type: 'textarea' },
@@ -62,10 +62,10 @@
             icon: 'fa-handshake',
             blurb: 'The agreement between the university and the partner community or organisation.',
             fields: [
-                { name: 'title', label: 'MOA Title', type: 'text', required: true },
-                { name: 'partner', label: 'Partner Organisation / Community', type: 'text' },
+                { name: 'title', label: 'MOA Title', type: 'text', required: true, key: true },
+                { name: 'partner', label: 'Partner Organisation / Community', type: 'text', half: true, key: true },
+                { name: 'moa_date', label: 'MOA Date', type: 'date', half: true, key: true },
                 { name: 'description', label: 'Agreement Description', type: 'textarea' },
-                { name: 'moa_date', label: 'MOA Date', type: 'date' },
                 { name: 'start_date', label: 'Start Date', type: 'date', half: true },
                 { name: 'end_date', label: 'End Date', type: 'date', half: true },
                 { name: 'school_responsibilities', label: 'Responsibilities of the University', type: 'textarea' },
@@ -78,7 +78,9 @@
             icon: 'fa-file-alt',
             blurb: 'A short summary of the proposed project.',
             fields: [
-                { name: 'title', label: 'Project Title', type: 'text', required: true },
+                { name: 'title', label: 'Project Title', type: 'text', required: true, key: true },
+                { name: 'date_prepared', label: 'Date Prepared', type: 'date', half: true, key: true },
+                { name: 'prepared_by', label: 'Prepared By', type: 'text', half: true, key: true },
                 { name: 'rationale', label: 'Rationale', type: 'textarea' },
                 { name: 'objectives', label: 'Objectives', type: 'textarea' },
                 { name: 'target_beneficiaries', label: 'Target Beneficiaries', type: 'textarea' },
@@ -86,9 +88,7 @@
                 { name: 'duration', label: 'Project Duration', type: 'text', half: true, hint: 'e.g. 6 months' },
                 { name: 'major_activities', label: 'Major Activities', type: 'textarea' },
                 { name: 'expected_outputs', label: 'Expected Outputs', type: 'textarea' },
-                { name: 'expected_outcomes', label: 'Expected Outcomes', type: 'textarea' },
-                { name: 'prepared_by', label: 'Prepared By', type: 'text', half: true },
-                { name: 'date_prepared', label: 'Date Prepared', type: 'date', half: true }
+                { name: 'expected_outcomes', label: 'Expected Outcomes', type: 'textarea' }
             ]
         },
         proposal: {
@@ -96,7 +96,9 @@
             icon: 'fa-file-signature',
             blurb: 'The full proposal the Extension Office approves before the project runs.',
             fields: [
-                { name: 'title', label: 'Proposal Title', type: 'text', required: true },
+                { name: 'title', label: 'Proposal Title', type: 'text', required: true, key: true },
+                { name: 'budget', label: 'Proposed Budget (PHP)', type: 'number', half: true, key: true },
+                { name: 'funding_source', label: 'Funding Source', type: 'text', half: true, key: true },
                 { name: 'background', label: 'Background / Rationale', type: 'textarea' },
                 { name: 'problem_statement', label: 'Problem Statement', type: 'textarea' },
                 { name: 'objectives', label: 'Objectives', type: 'textarea' },
@@ -108,8 +110,6 @@
                 { name: 'expected_outputs', label: 'Expected Outputs', type: 'textarea' },
                 { name: 'expected_outcomes', label: 'Expected Outcomes', type: 'textarea' },
                 { name: 'monitoring_plan', label: 'Monitoring and Evaluation Plan', type: 'textarea' },
-                { name: 'budget', label: 'Proposed Budget (PHP)', type: 'number', half: true },
-                { name: 'funding_source', label: 'Funding Source', type: 'text', half: true },
                 { name: 'sustainability_plan', label: 'Sustainability Plan', type: 'textarea' },
                 { name: 'prepared_by', label: 'Prepared By', type: 'text' }
             ]
@@ -119,12 +119,12 @@
             icon: 'fa-tasks',
             blurb: 'The final arrangements before the activity is run.',
             fields: [
-                { name: 'final_date', label: 'Final Activity Date', type: 'date', half: true },
-                { name: 'venue', label: 'Venue', type: 'text', half: true },
+                { name: 'final_date', label: 'Final Activity Date', type: 'date', half: true, key: true },
+                { name: 'venue', label: 'Venue', type: 'text', half: true, key: true },
+                { name: 'expected_participants', label: 'Expected Participants', type: 'number', half: true, key: true },
+                { name: 'target_beneficiaries', label: 'Target Beneficiaries', type: 'text', half: true, key: true },
                 { name: 'start_time', label: 'Start Time', type: 'time', half: true },
                 { name: 'end_time', label: 'End Time', type: 'time', half: true },
-                { name: 'expected_participants', label: 'Expected Participants', type: 'number', half: true },
-                { name: 'target_beneficiaries', label: 'Target Beneficiaries', type: 'text', half: true },
                 { name: 'materials', label: 'Required Materials', type: 'textarea' },
                 { name: 'equipment', label: 'Equipment', type: 'textarea' },
                 { name: 'assigned_personnel', label: 'Assigned Personnel', type: 'textarea' },
@@ -139,8 +139,8 @@
 
     // Designation is a list of people, so it has its own small form
     var DESIGNATION_FIELDS = [
-        { name: 'personnel_name', label: 'Name', type: 'text', required: true },
-        { name: 'role', label: 'Role / Designation', type: 'text', required: true, hint: 'e.g. Project Leader, Trainer, Documentation Officer' },
+        { name: 'personnel_name', label: 'Name', type: 'text', required: true, key: true },
+        { name: 'role', label: 'Role / Designation', type: 'text', required: true, key: true, hint: 'e.g. Project Leader, Trainer, Documentation Officer' },
         { name: 'responsibility', label: 'Responsibility', type: 'textarea' },
         { name: 'start_date', label: 'Start Date', type: 'date', half: true },
         { name: 'end_date', label: 'End Date', type: 'date', half: true }
@@ -711,50 +711,82 @@
        THE DOCUMENT FORM
     ================================================================= */
 
+    function build_field(field, values){
+
+        var value = values ? (values[field.name] == null ? '' : values[field.name]) : '';
+        var width = field.half ? 'col-md-6' : 'col-12';
+        var id = 'pjf-' + field.name;
+        var html = '<div class="' + width + ' form-group">';
+
+        if(field.type === 'check'){
+            return html +
+                   '<div class="custom-control custom-checkbox mt-2">' +
+                   '<input type="checkbox" class="custom-control-input" id="' + id + '" name="' + field.name + '" value="1"' +
+                   (String(value) === '1' ? ' checked' : '') + '>' +
+                   '<label class="custom-control-label" for="' + id + '">' + esc(field.label) + '</label>' +
+                   '</div></div>';
+        }
+
+        html += '<label for="' + id + '">' + esc(field.label) +
+                (field.required ? ' <span class="text-danger">*</span>' : '') + '</label>';
+
+        if(field.type === 'textarea'){
+            html += '<textarea class="form-control" id="' + id + '" name="' + field.name + '"' +
+                    (field.required ? ' required' : '') + '>' + esc(value) + '</textarea>';
+        }else{
+            html += '<input type="' + field.type + '" class="form-control" id="' + id + '" name="' + field.name + '" value="' + esc(value) + '"' +
+                    (field.type === 'number' ? ' step="any" min="0"' : '') +
+                    (field.required ? ' required' : '') + '>';
+        }
+
+        if(field.hint){
+            html += '<small class="pj-muted">' + esc(field.hint) + '</small>';
+        }
+
+        return html + '</div>';
+    }
+
+    /* The few fields worth filling in are shown; the rest sit behind "More
+       details", because the attached file is usually the document itself.
+       When a record already uses one of those extra fields, they start open. */
     function build_fields(fields, values){
 
-        var html = '<div class="row">';
+        var main = '';
+        var extra = '';
+        var extraUsed = false;
 
         $.each(fields, function(i, field){
 
-            var value = values ? (values[field.name] == null ? '' : values[field.name]) : '';
-            var width = field.half ? 'col-md-6' : 'col-12';
-            var id = 'pjf-' + field.name;
-
-            html += '<div class="' + width + ' form-group">';
-
-            if(field.type === 'check'){
-                html += '<div class="custom-control custom-checkbox mt-2">' +
-                        '<input type="checkbox" class="custom-control-input" id="' + id + '" name="' + field.name + '" value="1"' +
-                        (String(value) === '1' ? ' checked' : '') + '>' +
-                        '<label class="custom-control-label" for="' + id + '">' + esc(field.label) + '</label>' +
-                        '</div></div>';
+            if(field.key){
+                main += build_field(field, values);
                 return;
             }
 
-            html += '<label for="' + id + '">' + esc(field.label) +
-                    (field.required ? ' <span class="text-danger">*</span>' : '') + '</label>';
+            extra += build_field(field, values);
 
-            if(field.type === 'textarea'){
-                html += '<textarea class="form-control" id="' + id + '" name="' + field.name + '"' +
-                        (field.required ? ' required' : '') + '>' + esc(value) + '</textarea>';
-            }else{
-                var type = field.type === 'number' ? 'number' : field.type;
-                html += '<input type="' + type + '" class="form-control" id="' + id + '" name="' + field.name + '" value="' + esc(value) + '"' +
-                        (field.type === 'number' ? ' step="any" min="0"' : '') +
-                        (field.required ? ' required' : '') + '>';
+            var value = values ? values[field.name] : '';
+
+            if(value !== null && value !== undefined && String(value).trim() !== '' && String(value) !== '0'){
+                extraUsed = true;
             }
-
-            if(field.hint){
-                html += '<small class="pj-muted">' + esc(field.hint) + '</small>';
-            }
-
-            html += '</div>';
         });
 
-        html += '</div>' +
-                '<div class="form-group">' +
-                '<label for="pjf-document">Attach a file</label>' +
+        var html = '<div class="row">' + main + '</div>';
+
+        if(extra){
+            html += '<div class="pj-more">' +
+                        '<button type="button" class="pj-more-toggle' + (extraUsed ? ' open' : '') + '">' +
+                            '<i class="fas fa-chevron-right"></i> More details ' +
+                            '<span class="pj-muted">(optional)</span>' +
+                        '</button>' +
+                        '<div class="pj-more-body"' + (extraUsed ? '' : ' style="display:none"') + '>' +
+                            '<div class="row">' + extra + '</div>' +
+                        '</div>' +
+                    '</div>';
+        }
+
+        html += '<div class="form-group mt-3">' +
+                '<label for="pjf-document">Attach the document</label>' +
                 '<input type="file" class="form-control-file" id="pjf-document" name="document" ' +
                 'accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp">' +
                 '<small class="pj-muted">PDF, Word, Excel, PowerPoint or a picture. Up to 10 MB.' +
@@ -763,6 +795,10 @@
 
         return html;
     }
+
+    $(document).on('click', '.pj-more-toggle', function(){
+        $(this).toggleClass('open').next('.pj-more-body').slideToggle(160);
+    });
 
     function open_doc_form(type, doc){
 
