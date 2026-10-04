@@ -394,39 +394,16 @@ class="nav-link nav-evaluation_results nav-view_response">
 
 
 
-<!-- USERS -->
+<!-- USERS (one link; "Add User" is on the list page) -->
 
-<li class="nav-item has-treeview">
+<li class="nav-item">
 
-
-<a href="#"
-class="nav-link">
-
+<a href="./index.php?page=user_list"
+class="nav-link nav-user_list nav-new_user nav-edit_user nav-view_user">
 
 <i class="nav-icon fas fa-user-cog"></i>
 
-
-<p>
-Users
-<i class="right fas fa-angle-right"></i>
-</p>
-
-
-</a>
-
-
-
-<ul class="nav nav-treeview">
-
-
-<li>
-
-<a href="./index.php?page=new_user"
-class="nav-link tree-item nav-new_user">
-
-<i class="fas fa-user-plus nav-icon"></i>
-
-<p>Add User</p>
+<p>Users</p>
 
 </a>
 
@@ -434,36 +411,18 @@ class="nav-link tree-item nav-new_user">
 
 
 
-<li>
+<!-- SYSTEM UPDATE (applies database updates after a new version is pushed) -->
 
-<a href="./index.php?page=user_list"
-class="nav-link tree-item nav-user_list">
-
-<i class="fas fa-users nav-icon"></i>
-
-<p>User List</p>
-
-</a>
-
-</li>
-
-
-
-<li>
+<li class="nav-item">
 
 <a href="./index.php?page=system_update"
-class="nav-link tree-item nav-system_update">
+class="nav-link nav-system_update">
 
-<i class="fas fa-database nav-icon"></i>
+<i class="nav-icon fas fa-database"></i>
 
 <p>System Update</p>
 
 </a>
-
-</li>
-
-
-</ul>
 
 </li>
 
