@@ -1,12 +1,4 @@
 <style>
-.user-img{
-    width:42px;
-    height:42px;
-    border-radius:50%;
-    object-fit:cover;
-    border:2px solid #e5e7eb;
-}
-
 .main-header{
     background:#fff !important;
     border:none;
@@ -45,36 +37,7 @@
     color:#fff !important;
 }
 
-.profile-card{
-    display:flex;
-    align-items:center;
-    padding:6px 10px;
-    border-radius:50px;
-    transition:.3s;
-    cursor:pointer;
-}
-
-.profile-card:hover{
-    background:#f5f5f5;
-}
-
-.profile-info{
-    margin-left:12px;
-    line-height:1.2;
-}
-
-.profile-info b{
-    display:block;
-    color:#222;
-    font-size:14px;
-    font-weight:600;
-}
-
-.profile-info small{
-    color:#8b8b8b;
-    font-size:11px;
-}
-
+/* Every dropdown menu in the system, including the account menu in the sidebar */
 .dropdown-menu{
     border:none;
     border-radius:12px;
@@ -97,7 +60,7 @@
 }
 </style>
 
-<!-- Navbar -->
+<!-- Navbar. The signed-in person and their account menu are at the bottom of the sidebar (sidebar_account.php). -->
 <nav class="main-header navbar navbar-expand navbar-light">
 
     <!-- Left -->
@@ -114,68 +77,4 @@
         <?php endif; ?>
     </ul>
 
-    <!-- Right -->
-    <ul class="navbar-nav ml-auto">
-
-        <li class="nav-item dropdown">
-
-            <a class="nav-link p-0"
-               data-toggle="dropdown"
-               href="javascript:void(0)">
-
-                <div class="profile-card">
-
-                    <img src="assets/uploads/<?php echo $_SESSION['login_avatar'] ?>"
-                         class="user-img">
-
-                    <div class="profile-info">
-
-                        <b><?php echo ucwords($_SESSION['login_firstname']) ?></b>
-
-                       
-
-                    </div>
-
-                </div>
-
-            </a>
-
-            <div class="dropdown-menu dropdown-menu-right">
-
-                <a class="dropdown-item"
-                   href="javascript:void(0)"
-                   id="manage_account">
-
-                    <i class="fa fa-user-cog"></i>
-
-                    Manage Account
-
-                </a>
-
-                <div class="dropdown-divider"></div>
-
-                <a class="dropdown-item"
-                   href="ajax.php?action=logout">
-
-                    <i class="fa fa-sign-out-alt"></i>
-
-                    Logout
-
-                </a>
-
-            </div>
-
-        </li>
-
-    </ul>
-
 </nav>
-
-<script>
-$('#manage_account').click(function(){
-    uni_modal(
-        'Manage Account',
-        'manage_user.php?id=<?php echo $_SESSION['login_id'] ?>'
-    );
-});
-</script>
