@@ -1,3 +1,20 @@
+<?php
+// One security token per session, sent with every request this page makes,
+// so actions can tell a real click on this site from a request forged by another.
+if(session_status() === PHP_SESSION_ACTIVE && empty($_SESSION['csrf_token'])){
+	$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+?>
+<script>
+	window.CSRF_TOKEN = <?php echo json_encode($_SESSION['csrf_token'] ?? ''); ?>;
+
+	// Only requests to this site carry it; never sent to other websites
+	$.ajaxPrefilter(function(options, original, xhr){
+		if(!options.crossDomain){
+			xhr.setRequestHeader('X-CSRF-Token', window.CSRF_TOKEN);
+		}
+	});
+</script>
 <!-- SweetAlert2 -->
 <script src="assets/plugins/sweetalert2/sweetalert2.min.js"></script>
 <!-- Toastr -->

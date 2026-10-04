@@ -3,6 +3,12 @@
 
 <?php
 
+require_once 'questionnaire_lib.php';
+
+// Averages count only answers on the agree-disagree scale, not ratings out of 10 or choices
+$likert = questionnaire_likert_filter($conn, '');
+$likert_ea = questionnaire_likert_filter($conn, 'ea');
+
 function ordinal_suffix1($num){
 
     $num = $num % 100;
@@ -52,7 +58,7 @@ $overall_average = 0;
 $query = $conn->query("
     SELECT AVG(rate) AS average_rating
     FROM evaluation_answers
-    WHERE rate BETWEEN 1 AND 5
+    WHERE rate BETWEEN 1 AND 5 AND $likert
 ");
 
 if($query){
@@ -97,7 +103,7 @@ $total_ratings = 0;
 $query = $conn->query("
     SELECT COUNT(*) AS total
     FROM evaluation_answers
-    WHERE rate BETWEEN 1 AND 5
+    WHERE rate BETWEEN 1 AND 5 AND $likert
 ");
 
 if($query){
@@ -151,7 +157,7 @@ $query = $conn->query("
         ON a.id = ea.activity_id
 
     WHERE ea.activity_id > 0
-      AND ea.rate BETWEEN 1 AND 5
+      AND ea.rate BETWEEN 1 AND 5 AND $likert_ea
 
     GROUP BY
         ea.activity_id,
@@ -205,7 +211,7 @@ $query = $conn->query("
 
     FROM evaluation_answers
 
-    WHERE rate BETWEEN 1 AND 5
+    WHERE rate BETWEEN 1 AND 5 AND $likert
 
     GROUP BY rate
 
@@ -258,7 +264,7 @@ $query = $conn->query("
     INNER JOIN criteria_list c
         ON c.id = q.criteria_id
 
-    WHERE ea.rate BETWEEN 1 AND 5
+    WHERE ea.rate BETWEEN 1 AND 5 AND $likert_ea
 
     GROUP BY
         c.id,
@@ -314,7 +320,7 @@ $query = $conn->query("
 
     FROM evaluation_answers
 
-    WHERE rate BETWEEN 1 AND 5
+    WHERE rate BETWEEN 1 AND 5 AND $likert
     AND submitted_at IS NOT NULL
 
     GROUP BY DATE(submitted_at)

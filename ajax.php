@@ -61,6 +61,23 @@ $actions = array(
     'designation_save'       => array('any',   'designation_save'),
     'designation_delete'     => array('any',   'designation_delete'),
 
+    // Questionnaires (building, publishing, closing). Every one of these except
+    // qn_get also needs the page's security token (see below).
+    'qn_get'                 => array('admin', 'qn_get'),
+    'qn_save'                => array('admin', 'qn_save'),
+    'qn_delete'              => array('admin', 'qn_delete'),
+    'qn_section_save'        => array('admin', 'qn_section_save'),
+    'qn_section_delete'      => array('admin', 'qn_section_delete'),
+    'qn_section_from_criteria' => array('admin', 'qn_section_from_criteria'),
+    'qn_question_save'       => array('admin', 'qn_question_save'),
+    'qn_question_delete'     => array('admin', 'qn_question_delete'),
+    'qn_question_duplicate'  => array('admin', 'qn_question_duplicate'),
+    'qn_layout_save'         => array('admin', 'qn_layout_save'),
+    'qn_status'              => array('admin', 'qn_status'),
+    'qn_template_save'       => array('admin', 'qn_template_save'),
+    'qn_template_delete'     => array('admin', 'qn_template_delete'),
+    'qn_template_order'      => array('admin', 'qn_template_order'),
+
     // Own profile
     'update_user'            => array('any', 'update_user'),
 
@@ -120,6 +137,28 @@ if($who !== 'public'){
     if(($who === 'admin' && $login_type !== 1) || ($who === 'coordinator' && $login_type !== 2)){
         http_response_code(403);
         echo "You are not allowed to do that.";
+        ob_end_flush();
+        exit;
+    }
+}
+
+/*
+| Actions that change a questionnaire must also carry the security token the
+| page was given (footer.php sends it with every request). A page on another
+| website cannot read that token, so it cannot make a signed-in admin's
+| browser change anything here.
+*/
+if(strpos($action, 'qn_') === 0 && $action !== 'qn_get'){
+
+    $sent = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['csrf_token'] ?? '');
+
+    if(empty($_SESSION['csrf_token']) || !is_string($sent) || !hash_equals($_SESSION['csrf_token'], $sent)){
+        // 403, a standard code: Apache turns unknown ones such as 419 into a 500
+        http_response_code(403);
+        echo json_encode(array(
+            'ok' => false,
+            'error' => 'This page has expired. Please reload it and try again.'
+        ));
         ob_end_flush();
         exit;
     }

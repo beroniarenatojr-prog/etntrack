@@ -134,25 +134,45 @@
                             $criteria = array();
 
 
-                            // Questions of the current academic year, grouped by criteria
+                            require_once 'questionnaire_lib.php';
 
-                            $academic_id = isset($_SESSION['academic']['id'])
-                                ? (int)$_SESSION['academic']['id']
-                                : 0;
+                            /* Each criterion's template questions: the ones it brings
+                               when it is added to a questionnaire. Before the database
+                               update there are none yet, so the current academic year's
+                               questions are shown instead, as before. */
+
+                            $templates_ready = questionnaires_ready($conn);
 
                             $questions = array();
 
-                            $q_qry = $conn->query(
-                                "SELECT criteria_id, question
-                                 FROM question_list
-                                 " . ($academic_id ? "WHERE academic_id = $academic_id" : "") . "
-                                 ORDER BY ABS(order_by) ASC"
-                            );
+                            if($templates_ready){
 
-                            while($q = $q_qry->fetch_assoc()){
+                                $q_qry = $conn->query(
+                                    "SELECT id, criteria_id, question
+                                     FROM criteria_questions
+                                     ORDER BY order_by ASC, id ASC"
+                                );
 
-                                $questions[$q['criteria_id']][] = $q['question'];
+                                while($q = $q_qry->fetch_assoc()){
+                                    $questions[$q['criteria_id']][] = $q;
+                                }
 
+                            }else{
+
+                                $academic_id = isset($_SESSION['academic']['id'])
+                                    ? (int)$_SESSION['academic']['id']
+                                    : 0;
+
+                                $q_qry = $conn->query(
+                                    "SELECT criteria_id, question
+                                     FROM question_list
+                                     " . ($academic_id ? "WHERE academic_id = $academic_id" : "") . "
+                                     ORDER BY ABS(order_by) ASC"
+                                );
+
+                                while($q = $q_qry->fetch_assoc()){
+                                    $questions[$q['criteria_id']][] = array('id' => 0, 'question' => $q['question']);
+                                }
                             }
 
                             ?>
@@ -229,13 +249,26 @@
                                                         );
                                                         ?>
 
+                                                        <?php if(isset($row['is_active']) && !(int)$row['is_active']): ?>
+                                                            <span class="criteria-off" title="Not offered when building questionnaires">Off</span>
+                                                        <?php endif; ?>
+
                                                     </span>
+
+                                                    <?php if(!empty($row['description'])): ?>
+                                                        <span class="criteria-desc">
+                                                            <?php echo htmlspecialchars($row['description']); ?>
+                                                        </span>
+                                                    <?php endif; ?>
 
                                                     <small>
                                                         Evaluation Criterion
                                                         &middot;
-                                                        <?php echo count($row_questions); ?>
-                                                        <?php echo count($row_questions) == 1 ? 'Question' : 'Questions'; ?>
+                                                        <span class="template-count">
+                                                            <?php echo count($row_questions); ?>
+                                                            <?php echo $templates_ready ? 'Template' : ''; ?>
+                                                            <?php echo count($row_questions) == 1 ? 'Question' : 'Questions'; ?>
+                                                        </span>
                                                     </small>
 
                                                 </button>
@@ -326,14 +359,57 @@
                                                     id="criteria-questions-<?php echo $row['id']; ?>"
                                                 >
 
-                                                    <?php if(count($row_questions) > 0): ?>
+                                                    <?php if($templates_ready): ?>
+
+                                                        <!-- Template questions: added, edited, reordered and deleted here -->
+
+                                                        <p class="template-help">
+                                                            <i class="fas fa-info-circle"></i>
+                                                            These questions come with this criterion when it is added to a
+                                                            questionnaire. Changing them does not change questionnaires that
+                                                            already use it.
+                                                        </p>
+
+                                                        <ol class="question-items template-list" data-criteria="<?php echo $row['id']; ?>">
+
+                                                            <?php foreach($row_questions as $question): ?>
+
+                                                                <li class="template-item" data-id="<?php echo (int)$question['id']; ?>">
+                                                                    <span class="template-handle" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></span>
+                                                                    <span class="template-text"><?php echo htmlspecialchars($question['question']); ?></span>
+                                                                    <span class="template-tools">
+                                                                        <button type="button" class="template-btn template-edit" title="Edit" aria-label="Edit this question"><i class="fas fa-pen"></i></button>
+                                                                        <button type="button" class="template-btn template-delete" title="Delete" aria-label="Delete this question"><i class="fas fa-trash-alt"></i></button>
+                                                                    </span>
+                                                                </li>
+
+                                                            <?php endforeach; ?>
+
+                                                        </ol>
+
+                                                        <p class="no-questions template-empty"<?php echo $row_questions ? ' hidden' : ''; ?>>
+                                                            <i class="fas fa-info-circle"></i>
+                                                            No template questions yet. Add the first one below.
+                                                        </p>
+
+                                                        <!-- Not a form: this already sits inside the order form -->
+                                                        <div class="template-add" data-criteria="<?php echo $row['id']; ?>">
+                                                            <input type="text" class="form-control" maxlength="2000"
+                                                                   placeholder="Add a question, e.g. The project addressed our needs."
+                                                                   aria-label="New template question">
+                                                            <button type="button" class="btn template-add-btn">
+                                                                <i class="fas fa-plus"></i> Add
+                                                            </button>
+                                                        </div>
+
+                                                    <?php elseif(count($row_questions) > 0): ?>
 
                                                         <ol class="question-items">
 
                                                             <?php foreach($row_questions as $question): ?>
 
                                                                 <li>
-                                                                    <?php echo htmlspecialchars($question); ?>
+                                                                    <?php echo htmlspecialchars($question['question']); ?>
                                                                 </li>
 
                                                             <?php endforeach; ?>
@@ -500,6 +576,46 @@
                         </small>
 
                     </div>
+
+
+                    <?php if(!empty($templates_ready)): ?>
+
+                    <div class="form-group">
+
+                        <label for="criteria-description">
+
+                            <i class="fas fa-align-left"></i>
+
+                            Description
+
+                        </label>
+
+                        <textarea
+                            name="description"
+                            id="criteria-description"
+                            class="form-control criteria-input"
+                            rows="3"
+                            placeholder="What this criterion measures (optional)"
+                        ></textarea>
+
+                    </div>
+
+
+                    <div class="form-group criteria-active-row">
+
+                        <!-- Unticked sends 0; ticked sends 1, which wins -->
+                        <input type="hidden" name="is_active" value="0">
+
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="criteria-active" name="is_active" value="1" checked>
+                            <label class="custom-control-label" for="criteria-active">
+                                Active: offered when building questionnaires
+                            </label>
+                        </div>
+
+                    </div>
+
+                    <?php endif; ?>
 
 
                     <!-- INFO BOX -->
@@ -1603,6 +1719,135 @@
 }
 
 
+
+/* =========================================
+   DESCRIPTION, OFF, TEMPLATE QUESTIONS
+========================================= */
+
+.criteria-desc{
+    display:block;
+    margin-top:2px;
+    font-size:12px;
+    color:#6b7280;
+    word-break:break-word;
+}
+
+.criteria-off{
+    display:inline-block;
+    margin-left:6px;
+    padding:1px 8px;
+    border-radius:10px;
+    background:#f3f4f6;
+    color:#6b7280;
+    font-size:10px;
+    font-weight:700;
+    vertical-align:middle;
+}
+
+.template-help{
+    margin:0 0 10px;
+    font-size:12px;
+    color:#6b7280;
+}
+
+.template-help i{
+    color:#10b981;
+    margin-right:4px;
+}
+
+.question-items li.template-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.template-handle{
+    color:#9ca3af;
+    cursor:grab;
+    flex-shrink:0;
+}
+
+.template-text{
+    flex:1;
+    min-width:0;
+    word-break:break-word;
+}
+
+.template-tools{
+    display:flex;
+    gap:4px;
+    flex-shrink:0;
+}
+
+.template-btn{
+    width:28px;
+    height:28px;
+    border:1px solid #e5e7eb;
+    border-radius:7px;
+    background:white;
+    color:#6b7280;
+    font-size:11px;
+    cursor:pointer;
+}
+
+.template-btn:hover{
+    background:#ecfdf5;
+    color:#047857;
+    border-color:#a7f3d0;
+}
+
+.template-delete:hover{
+    background:#fef2f2;
+    color:#dc2626;
+    border-color:#fecaca;
+}
+
+.template-editor{
+    display:flex;
+    flex:1;
+    gap:6px;
+    min-width:0;
+}
+
+.template-editor .form-control{
+    height:32px;
+    font-size:13px;
+}
+
+.template-editor .btn,
+.template-add-btn{
+    flex-shrink:0;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:700;
+    background:#047857;
+    color:white;
+}
+
+.template-editor .template-cancel{
+    background:#f3f4f6;
+    color:#374151;
+}
+
+.template-add{
+    display:flex;
+    gap:8px;
+    margin-top:10px;
+}
+
+.template-add .form-control{
+    font-size:13px;
+}
+
+.template-list.ui-sortable .template-item.ui-sortable-helper{
+    box-shadow:0 8px 18px rgba(15,23,42,.12);
+}
+
+.criteria-active-row{
+    margin-top:-4px;
+}
+
+
 /* =========================================
    ACTION MENU
 ========================================= */
@@ -2040,6 +2285,224 @@ $(document).ready(function(){
 
 
     /* =========================================
+       TEMPLATE QUESTIONS
+       Added, edited, reordered and deleted in
+       place, without reloading the page.
+    ========================================= */
+
+    function template_error(xhr, fallback){
+        var resp = xhr && xhr.responseJSON;
+        alert_toast(resp && resp.error ? resp.error : fallback, 'error');
+    }
+
+    function template_count(item){
+        var count = item.find('.template-item').length;
+        item.find('.template-count').text(count + (count === 1 ? ' Template Question' : ' Template Questions'));
+        item.find('.template-empty').prop('hidden', count > 0);
+    }
+
+    function template_row(id, text){
+        var row = $(
+            '<li class="template-item">' +
+                '<span class="template-handle" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></span>' +
+                '<span class="template-text"></span>' +
+                '<span class="template-tools">' +
+                    '<button type="button" class="template-btn template-edit" title="Edit" aria-label="Edit this question"><i class="fas fa-pen"></i></button>' +
+                    '<button type="button" class="template-btn template-delete" title="Delete" aria-label="Delete this question"><i class="fas fa-trash-alt"></i></button>' +
+                '</span>' +
+            '</li>'
+        );
+        row.attr('data-id', id);
+        row.find('.template-text').text(text);
+        return row;
+    }
+
+    function template_add(box){
+
+        var input = box.find('input');
+        var text = $.trim(input.val());
+
+        if(text === ''){
+            input.trigger('focus');
+            return;
+        }
+
+        box.find('button').prop('disabled', true);
+
+        $.post('ajax.php?action=qn_template_save', { criteria_id: box.data('criteria'), question: text }, null, 'json')
+            .done(function(resp){
+                if(!resp.ok){
+                    alert_toast(resp.error, 'error');
+                    return;
+                }
+                var item = box.closest('.criteria-item');
+                item.find('.template-list').append(template_row(resp.id, resp.question));
+                template_count(item);
+                input.val('').trigger('focus');
+                alert_toast('Question added.', 'success');
+            })
+            .fail(function(xhr){
+                template_error(xhr, 'The question could not be added.');
+            })
+            .always(function(){
+                box.find('button').prop('disabled', false);
+            });
+    }
+
+    $('#ui-sortable-list').on('click', '.template-add-btn', function(){
+        template_add($(this).closest('.template-add'));
+    });
+
+    // Enter adds the question (and must not send the order form around it)
+    $('#ui-sortable-list').on('keydown', '.template-add input', function(e){
+        if(e.key === 'Enter'){
+            e.preventDefault();
+            template_add($(this).closest('.template-add'));
+        }
+    });
+
+    // Editing happens in the line itself
+    function template_finish(row, text){
+        row.removeClass('editing');
+        row.find('.template-text').text(text).show();
+        row.find('.template-editor').remove();
+        row.find('.template-tools').show();
+    }
+
+    $('#ui-sortable-list').on('click', '.template-edit', function(){
+
+        var row = $(this).closest('.template-item');
+        var text = row.find('.template-text').text();
+
+        if(row.hasClass('editing')){
+            return;
+        }
+
+        row.addClass('editing');
+        row.find('.template-text, .template-tools').hide();
+
+        var editor = $(
+            '<span class="template-editor">' +
+                '<input type="text" class="form-control" maxlength="2000" aria-label="Question text">' +
+                '<button type="button" class="btn template-save">Save</button>' +
+                '<button type="button" class="btn template-cancel">Cancel</button>' +
+            '</span>'
+        );
+
+        editor.find('input').val(text).data('original', text);
+        row.append(editor);
+        editor.find('input').trigger('focus');
+    });
+
+    function template_save(row){
+
+        var input = row.find('.template-editor input');
+        var text = $.trim(input.val());
+
+        if(text === ''){
+            input.trigger('focus');
+            return;
+        }
+
+        $.post('ajax.php?action=qn_template_save', {
+            criteria_id: row.closest('.template-list').data('criteria'),
+            id: row.data('id'),
+            question: text
+        }, null, 'json')
+            .done(function(resp){
+                if(resp.ok){
+                    template_finish(row, resp.question);
+                    alert_toast('Question saved.', 'success');
+                }else{
+                    alert_toast(resp.error, 'error');
+                }
+            })
+            .fail(function(xhr){
+                template_error(xhr, 'The question could not be saved.');
+            });
+    }
+
+    $('#ui-sortable-list').on('click', '.template-save', function(){
+        template_save($(this).closest('.template-item'));
+    });
+
+    $('#ui-sortable-list').on('click', '.template-cancel', function(){
+        var row = $(this).closest('.template-item');
+        template_finish(row, row.find('.template-editor input').data('original'));
+    });
+
+    $('#ui-sortable-list').on('keydown', '.template-editor input', function(e){
+        var row = $(this).closest('.template-item');
+        if(e.key === 'Enter'){
+            e.preventDefault();
+            template_save(row);
+        }else if(e.key === 'Escape'){
+            e.preventDefault();
+            template_finish(row, $(this).data('original'));
+        }
+    });
+
+    $('#ui-sortable-list').on('click', '.template-delete', function(){
+
+        var row = $(this).closest('.template-item');
+
+        Swal.fire({
+            title: 'Delete this question?',
+            text: row.find('.template-text').text(),
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            focusCancel: true
+        }).then(function(result){
+
+            if(!result.isConfirmed){
+                return;
+            }
+
+            $.post('ajax.php?action=qn_template_delete', { id: row.data('id') }, null, 'json')
+                .done(function(resp){
+                    if(resp.ok){
+                        var item = row.closest('.criteria-item');
+                        row.remove();
+                        template_count(item);
+                        alert_toast('Question deleted.', 'success');
+                    }else{
+                        alert_toast(resp.error, 'error');
+                    }
+                })
+                .fail(function(xhr){
+                    template_error(xhr, 'The question could not be deleted.');
+                });
+        });
+    });
+
+    // Dragging a question saves the new order straight away
+    $('.template-list').sortable({
+        handle: '.template-handle',
+        items: '> .template-item',
+        axis: 'y',
+        tolerance: 'pointer',
+        update: function(){
+            var list = $(this);
+            $.post('ajax.php?action=qn_template_order', {
+                criteria_id: list.data('criteria'),
+                ids: list.children('.template-item').map(function(){ return $(this).data('id'); }).get()
+            }, null, 'json')
+                .done(function(resp){
+                    if(!resp.ok){
+                        alert_toast(resp.error, 'error');
+                    }
+                })
+                .fail(function(xhr){
+                    template_error(xhr, 'The new order could not be saved.');
+                });
+        }
+    });
+
+
+    /* =========================================
        CRITERIA FORM MODAL
     ========================================= */
 
@@ -2066,6 +2529,14 @@ $(document).ready(function(){
         form
             .find("[name='criteria']")
             .val(data ? data.criteria : '');
+
+        form
+            .find("[name='description']")
+            .val(data && data.description ? data.description : '');
+
+        form
+            .find("#criteria-active")
+            .prop('checked', !data || data.is_active === undefined || String(data.is_active) === '1');
 
 
         $('#criteria-modal-title')
@@ -2378,6 +2849,19 @@ function delete_criteria($id){
                     location.reload();
 
                 },1500);
+
+
+            }else if(resp == 3){
+
+                // Already used: kept, so its results keep their grouping
+                end_load();
+                $('#confirm_modal').modal('hide');
+
+                Swal.fire({
+                    icon: 'info',
+                    title: 'This criterion is in use',
+                    text: 'A questionnaire already uses it, so it is kept. To stop offering it for new questionnaires, edit it and switch it off.'
+                });
 
 
             }else{

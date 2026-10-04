@@ -326,8 +326,9 @@
 
 $(document).ready(function(){
 
-    var page = '<?php echo isset($_GET['page']) ? $_GET['page'] : 'home' ?>';
-    var s = '<?php echo isset($_GET['s']) ? $_GET['s'] : '' ?>';
+    // Written as safe JavaScript strings, whatever the address contains
+    var page = <?php echo json_encode((string)($_GET['page'] ?? 'home'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    var s = <?php echo json_encode((string)($_GET['s'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 
     if(s != '')
         page = page + '_' + s;

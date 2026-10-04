@@ -92,9 +92,10 @@ include 'header.php';
 
                 <?php
 
-                $page = isset($_GET['page']) ? $_GET['page'] : 'home';
+                $page = isset($_GET['page']) ? (string)$_GET['page'] : 'home';
 
-                if (!file_exists($_SESSION['login_view_folder'] . $page . ".php")) {
+                // Only a plain page name: "../" would reach the other role's pages
+                if (!preg_match('/^[A-Za-z0-9_]+$/', $page) || !file_exists($_SESSION['login_view_folder'] . $page . ".php")) {
 
                     include '404.html';
 

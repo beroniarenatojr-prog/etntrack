@@ -271,7 +271,7 @@
 <li class="nav-item">
 
 <a href="./index.php?page=questionnaire"
-class="nav-link nav-questionnaire nav-criteria_list nav-manage_questionnaire">
+class="nav-link nav-questionnaire nav-criteria_list nav-manage_questionnaire nav-questionnaire_builder">
 
 <i class="nav-icon fas fa-clipboard-list"></i>
 
@@ -425,7 +425,7 @@ class="nav-link tree-item nav-faculty_list">
 <li class="nav-item">
 
 <a href="./index.php?page=evaluation_results"
-class="nav-link nav-evaluation_results">
+class="nav-link nav-evaluation_results nav-view_response">
 
 <i class="nav-icon fas fa-chart-line"></i>
 
@@ -885,10 +885,11 @@ box-shadow:none!important;
 $(document).ready(function(){
 
 
-var page='<?php echo isset($_GET["page"])?$_GET["page"]:"home"; ?>';
+// Written as safe JavaScript strings, whatever the address contains
+var page=<?php echo json_encode((string)($_GET["page"] ?? "home"), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 
 
-var s='<?php echo isset($_GET["s"])?$_GET["s"]:""; ?>';
+var s=<?php echo json_encode((string)($_GET["s"] ?? ""), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 
 
 if(s!=''){

@@ -5,9 +5,11 @@
   date_default_timezone_set("Asia/Manila");
   
   ob_start();
-  $title = isset($_GET['page']) ? ucwords(str_replace("_", ' ', $_GET['page'])) : "Home";
+  // A page name is letters, digits and underscores only (index.php refuses anything else)
+  $page_name = isset($_GET['page']) && preg_match('/^[A-Za-z0-9_]+$/', (string)$_GET['page']) ? $_GET['page'] : 'home';
+  $title = htmlspecialchars(ucwords(str_replace("_", ' ', $page_name)));
   ?>
-  <title><?php echo $title ?> | <?php echo $_SESSION['system']['name'] ?></title>
+  <title><?php echo $title ?> | <?php echo htmlspecialchars($_SESSION['system']['name'] ?? '') ?></title>
   <?php ob_end_flush() ?>
 
   <!-- Google Font: Source Sans Pro -->

@@ -8,10 +8,34 @@ ini_set('display_errors', $on_localhost ? '1' : '0');
 ini_set('log_errors', '1');
 
 require_once __DIR__.'/project_actions.php';
+require_once __DIR__.'/questionnaire_actions.php';
 
 Class Action {
 
-	use ProjectActions;   // projects and their pre-activity documents
+	use ProjectActions;         // projects and their pre-activity documents
+	use QuestionnaireActions;   // building, publishing and closing questionnaires
+
+	/*
+	| Records who did what, and when, in audit_log. A failure here never stops
+	| the action itself (for example, before the database update adds the table).
+	*/
+	protected function audit($action, $entity, $entity_id = null, $details = ''){
+		try {
+			$user = (int)($_SESSION['login_id'] ?? 0) ?: null;
+			$type = (int)($_SESSION['login_type'] ?? 0) ?: null;
+			$entity_id = $entity_id !== null ? (int)$entity_id : null;
+			$details = mb_substr((string)$details, 0, 2000);
+
+			$stmt = $this->db->prepare("
+				INSERT INTO audit_log (user_id, user_type, action, entity, entity_id, details)
+				VALUES (?, ?, ?, ?, ?, ?)
+			");
+			$stmt->bind_param('iissis', $user, $type, $action, $entity, $entity_id, $details);
+			$stmt->execute();
+		} catch (Throwable $e) {
+			error_log('audit: '.$e->getMessage());
+		}
+	}
 
 	private $db;
 
@@ -1238,51 +1262,111 @@ function activity_counts(){
     return 1;
 
 }
+	/*
+	| EVALUATION CRITERIA
+	| A criterion has a name, an optional description, and can be switched off
+	| so new questionnaires no longer offer it. Its template questions are in
+	| criteria_questions (questionnaire_actions.php).
+	| Answers: 1 saved, 2 the name is already used, 0 not saved.
+	*/
 	function save_criteria(){
-		extract($_POST);
-		$data = "";
-		foreach($_POST as $k => $v){
-			if(!in_array($k, array('id','user_ids')) && !is_numeric($k)){
-				if(empty($data)){
-					$data .= " $k='$v' ";
-				}else{
-					$data .= ", $k='$v' ";
-				}
-			}
+
+		$id = (int)($_POST['id'] ?? 0);
+		$name = trim((string)($_POST['criteria'] ?? ''));
+
+		if($name === ''){
+			return 0;
 		}
-		$chk = $this->db->query("SELECT * FROM criteria_list where (".str_replace(",",'and',$data).") and id != '{$id}' ")->num_rows;
-		if($chk > 0){
+
+		$name = mb_substr($name, 0, 255);
+
+		// The same name twice is refused, whatever the capital letters
+		$stmt = $this->db->prepare("SELECT id FROM criteria_list WHERE LOWER(TRIM(criteria)) = LOWER(?) AND id <> ?");
+		$stmt->bind_param('si', $name, $id);
+		$stmt->execute();
+
+		if($stmt->get_result()->num_rows > 0){
 			return 2;
 		}
-		
-		if(empty($id)){
-			$lastOrder= $this->db->query("SELECT * FROM criteria_list order by abs(order_by) desc limit 1");
-		$lastOrder = $lastOrder->num_rows > 0 ? $lastOrder->fetch_array()['order_by'] + 1 : 0;
-		$data .= ", order_by='$lastOrder' ";
-			$save = $this->db->query("INSERT INTO criteria_list set $data");
+
+		$values = array('criteria' => $name);
+
+		// Description and on/off arrive with the questionnaire database update
+		if($this->db->query("SHOW COLUMNS FROM criteria_list LIKE 'description'")->num_rows){
+			$values['description'] = trim((string)($_POST['description'] ?? ''));
+		}
+
+		if(isset($_POST['is_active']) && $this->db->query("SHOW COLUMNS FROM criteria_list LIKE 'is_active'")->num_rows){
+			$values['is_active'] = $_POST['is_active'] === '1' ? 1 : 0;
+		}
+
+		if($id){
+
+			if(!$this->db->query("SELECT id FROM criteria_list WHERE id = $id")->num_rows){
+				return 0;
+			}
+
+			$this->qn_write('criteria_list', $values, $id);
+			$this->audit('criteria_updated', 'criteria', $id, $name);
+
 		}else{
-			$save = $this->db->query("UPDATE criteria_list set $data where id = $id");
+
+			$values['order_by'] = (int)$this->db->query("SELECT COALESCE(MAX(order_by), -1) + 1 AS n FROM criteria_list")->fetch_assoc()['n'];
+			$id = $this->qn_write('criteria_list', $values);
+			$this->audit('criteria_added', 'criteria', $id, $name);
 		}
-		if($save){
-			return 1;
-		}
+
+		return 1;
 	}
+
+	/*
+	| A criterion that questions or questionnaire sections already use is
+	| kept, so their results keep their grouping; it can be switched off
+	| instead. Answers: 1 deleted, 3 in use, 0 not found.
+	*/
 	function delete_criteria(){
-		extract($_POST);
-		$delete = $this->db->query("DELETE FROM criteria_list where id = $id");
-		if($delete){
-			return 1;
+
+		$id = (int)($_POST['id'] ?? 0);
+		$criterion = $this->db->query("SELECT * FROM criteria_list WHERE id = $id")->fetch_assoc();
+
+		if(!$criterion){
+			return 0;
 		}
+
+		$used = (int)$this->db->query("SELECT COUNT(*) AS c FROM question_list WHERE criteria_id = $id")->fetch_assoc()['c'];
+
+		if($this->questionnaire_tables_ready()){
+			$used += (int)$this->db->query("SELECT COUNT(*) AS c FROM questionnaire_sections WHERE criteria_id = $id")->fetch_assoc()['c'];
+		}
+
+		if($used > 0){
+			return 3;
+		}
+
+		$this->db->query("DELETE FROM criteria_list WHERE id = $id");
+
+		if($this->questionnaire_tables_ready()){
+			$this->db->query("DELETE FROM criteria_questions WHERE criteria_id = $id");
+		}
+
+		$this->audit('criteria_deleted', 'criteria', $id, $criterion['criteria']);
+
+		return 1;
 	}
+
 	function save_criteria_order(){
-		extract($_POST);
-		$data = "";
-		foreach($criteria_id as $k => $v){
-			$update[] = $this->db->query("UPDATE criteria_list set order_by = $k where id = $v");
+
+		$ids = isset($_POST['criteria_id']) && is_array($_POST['criteria_id']) ? $_POST['criteria_id'] : array();
+
+		if(!$ids){
+			return 0;
 		}
-		if(isset($update) && count($update)){
-			return 1;
+
+		foreach(array_values($ids) as $position => $criteria_id){
+			$this->db->query("UPDATE criteria_list SET order_by = ".(int)$position." WHERE id = ".(int)$criteria_id);
 		}
+
+		return 1;
 	}
 /*
 |--------------------------------------------------------------------------
@@ -2075,47 +2159,109 @@ function update_activity_status(){
 }
 
 
+	/*
+	| Used by the older per-academic-year question page, only until the
+	| database update that adds questionnaires has been applied. After that,
+	| questions are changed in the Questionnaire Builder, which keeps a
+	| published questionnaire's questions locked, so these refuse.
+	*/
+	private function legacy_questions_closed(){
+		return $this->questionnaire_tables_ready()
+			? "Questions are now managed in the Questionnaire Builder (Questionnaires, then Edit or Manage Questions)."
+			: null;
+	}
+
 	function save_question(){
-		extract($_POST);
-		$data = "";
-		foreach($_POST as $k => $v){
-			if(!in_array($k, array('id','user_ids')) && !is_numeric($k)){
-				if(empty($data)){
-					$data .= " $k='$v' ";
-				}else{
-					$data .= ", $k='$v' ";
-				}
-			}
+
+		if($closed = $this->legacy_questions_closed()){
+			return $closed;
 		}
-		
-		if(empty($id)){
-			$lastOrder= $this->db->query("SELECT * FROM question_list where academic_id = $academic_id order by abs(order_by) desc limit 1");
-			$lastOrder = $lastOrder->num_rows > 0 ? $lastOrder->fetch_array()['order_by'] + 1 : 0;
-			$data .= ", order_by='$lastOrder' ";
-			$save = $this->db->query("INSERT INTO question_list set $data");
+
+		$id = (int)($_POST['id'] ?? 0);
+		$academic_id = (int)($_POST['academic_id'] ?? 0);
+		$criteria_id = (int)($_POST['criteria_id'] ?? 0);
+		$question = trim((string)($_POST['question'] ?? ''));
+
+		if($question === '' || $criteria_id <= 0){
+			return "Please enter the question and choose its criteria.";
+		}
+
+		$text = $this->db->real_escape_string($question);
+
+		if($id){
+			$save = $this->db->query("
+				UPDATE question_list
+				SET question = '$text', criteria_id = $criteria_id
+				WHERE id = $id
+			");
 		}else{
-			$save = $this->db->query("UPDATE question_list set $data where id = $id");
+			$next = (int)$this->db->query("
+				SELECT COALESCE(MAX(order_by), -1) + 1 AS next_order FROM question_list WHERE academic_id = $academic_id
+			")->fetch_assoc()['next_order'];
+
+			$save = $this->db->query("
+				INSERT INTO question_list
+				SET academic_id = $academic_id, criteria_id = $criteria_id, question = '$text', order_by = $next
+			");
 		}
-		if($save){
-			return 1;
-		}
+
+		return $save ? 1 : "The question could not be saved.";
 	}
+
+	// Whether the database update that adds questionnaires has been applied
+	private function questionnaire_tables_ready(){
+		return $this->db->query("
+			SELECT 1 FROM information_schema.TABLES
+			WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'questionnaires'
+		")->num_rows > 0;
+	}
+
+	// A question that has been answered is kept, or its answers would be lost
 	function delete_question(){
-		extract($_POST);
-		$delete = $this->db->query("DELETE FROM question_list where id = $id");
-		if($delete){
-			return 1;
+
+		if($closed = $this->legacy_questions_closed()){
+			return $closed;
 		}
+
+		$id = (int)($_POST['id'] ?? 0);
+
+		if($id <= 0){
+			return "Question not found.";
+		}
+
+		$answers = (int)$this->db->query("SELECT COUNT(*) AS c FROM evaluation_answers WHERE question_id = $id")->fetch_assoc()['c'];
+
+		if($answers > 0){
+			return "This question has already been answered $answers time".($answers == 1 ? "" : "s")
+				.", so deleting it would lose those answers.";
+		}
+
+		$delete = $this->db->query("DELETE FROM question_list WHERE id = $id");
+
+		if($delete && $this->questionnaire_tables_ready()){
+			$this->db->query("DELETE FROM question_options WHERE question_id = $id");
+		}
+
+		return $delete ? 1 : "The question could not be deleted.";
 	}
+
 	function save_question_order(){
-		extract($_POST);
-		$data = "";
-		foreach($qid as $k => $v){
-			$update[] = $this->db->query("UPDATE question_list set order_by = $k where id = $v");
+
+		if($closed = $this->legacy_questions_closed()){
+			return $closed;
 		}
-		if(isset($update) && count($update)){
-			return 1;
+
+		$ids = isset($_POST['qid']) && is_array($_POST['qid']) ? $_POST['qid'] : array();
+
+		if(!$ids){
+			return "Nothing to reorder.";
 		}
+
+		foreach(array_values($ids) as $position => $id){
+			$this->db->query("UPDATE question_list SET order_by = ".(int)$position." WHERE id = ".(int)$id);
+		}
+
+		return 1;
 	}
 	function save_faculty(){
 

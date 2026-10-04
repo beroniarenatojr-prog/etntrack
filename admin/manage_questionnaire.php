@@ -1,8 +1,33 @@
-<?php 
+<?php
 include 'db_connect.php';
 
+/*
+| Questions used to be managed here, per academic year. They are now built
+| per questionnaire in the Questionnaire Builder, where a published
+| questionnaire's questions are locked. Once the database update has been
+| applied, this page sends you to the builder for that year's questionnaire.
+*/
+require_once 'questionnaire_lib.php';
+
+if(questionnaires_ready($conn)){
+
+    $academic_id = (int)($_GET['id'] ?? 0);
+
+    $linked = $academic_id
+        ? $conn->query("SELECT id FROM questionnaires WHERE academic_id = $academic_id ORDER BY id DESC LIMIT 1")->fetch_assoc()
+        : null;
+
+    $target = $linked
+        ? 'index.php?page=questionnaire_builder&id='.(int)$linked['id'].'&step=3'
+        : 'index.php?page=questionnaire';
+
+    echo '<script>location.replace('.json_encode($target).');</script>';
+    echo '<p><a href="'.htmlspecialchars($target).'">Questions are now managed in the Questionnaire Builder. Continue there.</a></p>';
+    return;
+}
+
 if(isset($_GET['id'])){
-    $qry = $conn->query("SELECT * FROM academic_list WHERE id = ".$_GET['id'])->fetch_array();
+    $qry = $conn->query("SELECT * FROM academic_list WHERE id = ".(int)$_GET['id'])->fetch_array();
 
     foreach($qry as $k => $v){
         $$k = $v;

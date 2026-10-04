@@ -1,47 +1,91 @@
-
 <?php include 'db_connect.php' ?>
 
 <?php
 
-/* =========================================================
-   SUMMARY DATA
-========================================================= */
+/*
+| QUESTIONNAIRES
+| Every questionnaire with its academic year, how many questions and
+| responses it has, and where it is in its lifecycle. Each row's menu offers
+| only what that status allows, and the server checks again on every action.
+*/
 
-$total_academic = 0;
+require_once 'questionnaire_lib.php';
+
+$questionnaires_ready = questionnaires_ready($conn);
+
+$total_years = 0;
 $total_questions = 0;
-$total_answers = 0;
+$total_responses = 0;
+$total_active = 0;
+$questionnaires = array();
 
-$summary_academic = $conn->query("
-    SELECT COUNT(*) AS total
-    FROM academic_list
-");
+if($questionnaires_ready){
 
-if($summary_academic){
-    $data = $summary_academic->fetch_assoc();
-    $total_academic = $data['total'];
+    $total_years = (int)$conn->query("
+        SELECT COUNT(DISTINCT academic_year) AS c FROM questionnaires
+        WHERE academic_year IS NOT NULL AND academic_year <> ''
+    ")->fetch_assoc()['c'];
+
+    $total_questions = (int)$conn->query("
+        SELECT COUNT(*) AS c FROM question_list WHERE questionnaire_id IS NOT NULL AND is_active = 1
+    ")->fetch_assoc()['c'];
+
+    $total_responses = (int)$conn->query("SELECT COUNT(*) AS c FROM evaluation_responses")->fetch_assoc()['c'];
+
+    $total_active = (int)$conn->query("SELECT COUNT(*) AS c FROM questionnaires WHERE status = 'active'")->fetch_assoc()['c'];
+
+    $result = $conn->query("
+        SELECT q.*, p.title AS project_title,
+            (SELECT COUNT(*) FROM question_list l WHERE l.questionnaire_id = q.id AND l.is_active = 1) AS questions,
+            (SELECT COUNT(*) FROM evaluation_responses r WHERE r.questionnaire_id = q.id) AS responses
+        FROM questionnaires q
+        LEFT JOIN projects p ON p.id = q.project_id
+        ORDER BY FIELD(q.status, 'active', 'ready', 'draft', 'closed', 'archived'),
+            q.academic_year DESC, q.id DESC
+    ");
+
+    while($row = $result->fetch_assoc()){
+        $questionnaires[] = $row;
+    }
 }
 
+$evaluation_types = questionnaire_evaluation_types();
 
-$summary_questions = $conn->query("
-    SELECT COUNT(*) AS total
-    FROM question_list
-");
+// How each status looks: label, badge class, icon
+$status_view = array(
+    'draft' => array('Draft', 'status-draft', 'fa-pen'),
+    'ready' => array('Ready', 'status-ready', 'fa-check'),
+    'active' => array('Active', 'status-ongoing', 'fa-play'),
+    'closed' => array('Closed', 'status-closed', 'fa-lock'),
+    'archived' => array('Archived', 'status-archived', 'fa-archive')
+);
 
-if($summary_questions){
-    $data = $summary_questions->fetch_assoc();
-    $total_questions = $data['total'];
-}
+/*
+| What each status allows, in menu order. Links open a page; the others
+| change the status (or delete) after a confirmation.
+*/
+$menus = array(
+    'draft' => array('edit', 'questions', 'preview', 'ready', 'delete'),
+    'ready' => array('edit', 'questions', 'preview', 'publish', 'draft', 'delete'),
+    'active' => array('view', 'preview', 'responses', 'results', 'close'),
+    'closed' => array('view', 'responses', 'results', 'archive'),
+    'archived' => array('view', 'results')
+);
 
-
-$summary_answers = $conn->query("
-    SELECT COUNT(*) AS total
-    FROM evaluation_list
-");
-
-if($summary_answers){
-    $data = $summary_answers->fetch_assoc();
-    $total_answers = $data['total'];
-}
+$menu_items = array(
+    'edit'      => array('fa-edit', 'edit-icon', 'Edit', 'Title, period and scale', 'link', 1),
+    'questions' => array('fa-list-ol', 'edit-icon', 'Manage Questions', 'Sections and questions', 'link', 3),
+    'view'      => array('fa-eye', 'edit-icon', 'View', 'Read-only', 'link', 1),
+    'preview'   => array('fa-desktop', 'edit-icon', 'Preview', 'As respondents see it', 'link', 4),
+    'responses' => array('fa-users', 'edit-icon', 'View Responses', 'Who has answered', 'results', null),
+    'results'   => array('fa-chart-bar', 'edit-icon', 'View Results', 'Scores and comments', 'results', null),
+    'ready'     => array('fa-check-circle', 'edit-icon', 'Mark Ready', 'Checks it can be published', 'status', 'ready'),
+    'publish'   => array('fa-paper-plane', 'edit-icon', 'Publish', 'Open it for responses', 'status', 'active'),
+    'draft'     => array('fa-undo', 'edit-icon', 'Back to Draft', 'Keep working on it', 'status', 'draft'),
+    'close'     => array('fa-lock', 'edit-icon', 'Close Evaluation', 'Stop new responses', 'status', 'closed'),
+    'archive'   => array('fa-archive', 'edit-icon', 'Archive', 'Keep it read-only', 'status', 'archived'),
+    'delete'    => array('fa-trash-alt', 'delete-icon', 'Delete', 'Remove this draft', 'delete', null)
+);
 
 ?>
 
@@ -69,15 +113,18 @@ if($summary_answers){
             </h2>
 
             <p>
-                Create and manage evaluation questions for each academic year.
+                Build, publish and close the evaluation questionnaires used for extension projects.
             </p>
 
         </div>
 
     </div>
 
-
-  
+    <?php if($questionnaires_ready): ?>
+    <a href="index.php?page=questionnaire_builder" class="btn add-question-btn">
+        <i class="fas fa-plus"></i> New Questionnaire
+    </a>
+    <?php endif; ?>
 
 </div>
 
@@ -89,95 +136,45 @@ if($summary_answers){
 
 <div class="row summary-row">
 
-
-    <!-- ACADEMIC YEARS -->
-
-    <div class="col-lg-4 col-md-4 col-sm-12">
-
+    <div class="col-lg-3 col-md-6 col-sm-12">
         <div class="summary-card">
-
-            <div class="summary-icon green">
-
-                <i class="fas fa-calendar-alt"></i>
-
-            </div>
-
+            <div class="summary-icon green"><i class="fas fa-calendar-alt"></i></div>
             <div class="summary-content">
-
-                <span>
-                    Academic Years
-                </span>
-
-                <strong>
-                    <?php echo number_format($total_academic); ?>
-                </strong>
-
+                <span>Academic Years</span>
+                <strong><?php echo number_format($total_years); ?></strong>
             </div>
-
         </div>
-
     </div>
 
-
-
-    <!-- QUESTIONS -->
-
-    <div class="col-lg-4 col-md-4 col-sm-12">
-
+    <div class="col-lg-3 col-md-6 col-sm-12">
         <div class="summary-card">
-
-            <div class="summary-icon blue">
-
-                <i class="fas fa-question-circle"></i>
-
-            </div>
-
+            <div class="summary-icon blue"><i class="fas fa-question-circle"></i></div>
             <div class="summary-content">
-
-                <span>
-                    Total Questions
-                </span>
-
-                <strong>
-                    <?php echo number_format($total_questions); ?>
-                </strong>
-
+                <span>Total Questions</span>
+                <strong><?php echo number_format($total_questions); ?></strong>
             </div>
-
         </div>
-
     </div>
 
-
-
-    <!-- ANSWERS -->
-
-    <div class="col-lg-4 col-md-4 col-sm-12">
-
+    <div class="col-lg-3 col-md-6 col-sm-12">
         <div class="summary-card">
-
-            <div class="summary-icon purple">
-
-                <i class="fas fa-check-circle"></i>
-
-            </div>
-
+            <div class="summary-icon purple"><i class="fas fa-check-circle"></i></div>
             <div class="summary-content">
-
-                <span>
-                    Evaluation Responses
-                </span>
-
-                <strong>
-                    <?php echo number_format($total_answers); ?>
-                </strong>
-
+                <span>Evaluation Responses</span>
+                <strong><?php echo number_format($total_responses); ?></strong>
             </div>
-
         </div>
-
     </div>
 
+    <div class="col-lg-3 col-md-6 col-sm-12">
+        <div class="summary-card">
+            <div class="summary-icon green"><i class="fas fa-broadcast-tower"></i></div>
+            <div class="summary-content">
+                <span>Active Questionnaires</span>
+                <strong><?php echo number_format($total_active); ?></strong>
+            </div>
+        </div>
+    </div>
 
 </div>
 
@@ -185,8 +182,8 @@ if($summary_answers){
 
 <!-- =====================================================
      TABS
-     The questionnaire itself, and the criteria its questions
-     are grouped under. Both used to be separate menu items.
+     The questionnaires, and the criteria their sections can be
+     built from. Both used to be separate menu items.
 ===================================================== -->
 
 <div class="qn-tabs" role="tablist">
@@ -205,433 +202,210 @@ if($summary_answers){
 <div class="qn-panel active" data-panel="questionnaires">
 
 
-<!-- =====================================================
-     QUESTIONNAIRE TABLE
-===================================================== -->
-
 <div class="card questionnaire-card">
 
-
-    <!-- TABLE HEADER -->
-
     <div class="question-header">
-
         <div class="header-title">
-
-            <div class="header-icon">
-
-                <i class="fas fa-list-check"></i>
-
-            </div>
-
+            <div class="header-icon"><i class="fas fa-list-check"></i></div>
             <div>
-
-                <h3>
-                    Evaluation Questionnaires
-                </h3>
-
-                <p>
-                    Manage questions and evaluation responses by academic period.
-                </p>
-
+                <h3>Evaluation Questionnaires</h3>
+                <p>Draft &rarr; Ready &rarr; Active &rarr; Closed &rarr; Archived</p>
             </div>
-
         </div>
-
     </div>
-
-
-
-    <!-- TABLE BODY -->
 
     <div class="card-body">
 
+    <?php if(!$questionnaires_ready): ?>
+
+        <div class="qn-notice">
+            <i class="fas fa-database"></i>
+            <div>
+                <b>One more step is needed.</b>
+                Apply the latest database update to start using questionnaires.
+                <a href="index.php?page=system_update">Open System Update</a>
+            </div>
+        </div>
+
+    <?php elseif(!$questionnaires): ?>
+
+        <div class="qn-notice">
+            <i class="fas fa-clipboard-list"></i>
+            <div>
+                <b>No questionnaires yet.</b>
+                Click <a href="index.php?page=questionnaire_builder">New Questionnaire</a> to create the first one.
+            </div>
+        </div>
+
+    <?php else: ?>
 
         <div class="table-responsive">
 
-
-            <table
-                class="table modern-table"
-                id="list"
-            >
-
+            <table class="table modern-table" id="qn-list">
 
                 <thead>
-
                     <tr>
-
-                        <th class="number-column">
-                            #
-                        </th>
-
-                        <th>
-                            Academic Year
-                        </th>
-
-                        <th>
-                            Semester
-                        </th>
-
-                        <th class="text-center">
-                            Questions
-                        </th>
-
-                        <th class="text-center">
-                            Evaluations
-                        </th>
-
-                        <th class="text-center">
-                            Status
-                        </th>
-
-                        <th class="text-center action-column">
-                            Action
-                        </th>
-
+                        <th class="number-column">#</th>
+                        <th>Academic Year</th>
+                        <th>Semester</th>
+                        <th>Questionnaire</th>
+                        <th class="text-center">Questions</th>
+                        <th class="text-center">Responses</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center action-column">Action</th>
                     </tr>
-
                 </thead>
-
-
 
                 <tbody>
 
+                <?php foreach($questionnaires as $i => $row):
 
-                <?php
-
-                $i = 1;
-
-
-                $qry = $conn->query("
-                    SELECT *
-                    FROM academic_list
-                    ORDER BY
-                    CAST(SUBSTRING_INDEX(year,'-',1) AS UNSIGNED) DESC,
-                    semester DESC
-                ");
-
-
-                while($row = $qry->fetch_assoc()):
-
-
-                    /* QUESTIONS */
-
-                    $questions = 0;
-
-                    $question_query = $conn->query("
-                        SELECT COUNT(*) AS total
-                        FROM question_list
-                        WHERE academic_id = {$row['id']}
-                    ");
-
-                    if($question_query){
-
-                        $question_data =
-                            $question_query->fetch_assoc();
-
-                        $questions =
-                            $question_data['total'];
-
-                    }
-
-
-
-                    /* EVALUATIONS */
-
-                    $answers = 0;
-
-                    $answer_query = $conn->query("
-                        SELECT COUNT(*) AS total
-                        FROM evaluation_list
-                        WHERE academic_id = {$row['id']}
-                    ");
-
-                    if($answer_query){
-
-                        $answer_data =
-                            $answer_query->fetch_assoc();
-
-                        $answers =
-                            $answer_data['total'];
-
-                    }
-
-
-
-                    /* STATUS */
-
-                    if($row['status'] == 0){
-
-                        $status_text = "Not Yet Started";
-                        $status_class = "status-pending";
-                        $status_icon = "fa-clock";
-
-                    }elseif($row['status'] == 1){
-
-                        $status_text = "Ongoing";
-                        $status_class = "status-ongoing";
-                        $status_icon = "fa-play";
-
-                    }else{
-
-                        $status_text = "Closed";
-                        $status_class = "status-closed";
-                        $status_icon = "fa-lock";
-
-                    }
-
+                    $view = $status_view[$row['status']] ?? array(ucfirst($row['status']), 'status-pending', 'fa-circle');
+                    $id = (int)$row['id'];
                 ?>
 
+                    <tr data-id="<?php echo $id; ?>" data-title="<?php echo htmlspecialchars($row['title']); ?>">
 
-                <tr>
+                        <td class="number-column"><?php echo $i + 1; ?></td>
 
+                        <td>
+                            <?php if($row['academic_year']): ?>
+                                <strong><?php echo htmlspecialchars($row['academic_year']); ?></strong>
+                            <?php else: ?>
+                                <span class="qn-muted">Not set</span>
+                            <?php endif; ?>
+                        </td>
 
-                    <!-- NUMBER -->
+                        <td>
+                            <?php if($row['semester']): ?>
+                                <span class="semester-badge">
+                                    <i class="fas fa-calendar-week"></i>
+                                    <?php echo htmlspecialchars($row['semester']); ?>
+                                </span>
+                            <?php else: ?>
+                                <span class="qn-muted">Not set</span>
+                            <?php endif; ?>
+                        </td>
 
-                    <td class="number-cell">
-
-                        <span class="row-number">
-
-                            <?php echo $i++; ?>
-
-                        </span>
-
-                    </td>
-
-
-
-                    <!-- ACADEMIC YEAR -->
-
-                    <td>
-
-                        <div class="academic-year">
-
-                            <div class="year-icon">
-
-                                <i class="fas fa-calendar"></i>
-
-                            </div>
-
-                            <div>
-
-                                <strong>
-
-                                    <?php echo htmlspecialchars($row['year']); ?>
-
-                                </strong>
-
-                                <?php if($row['is_default'] == 1): ?>
-
-                                    <span class="default-badge">
-
-                                        <i class="fas fa-star"></i>
-
-                                        Default
-
-                                    </span>
-
+                        <td>
+                            <div class="qn-title"><?php echo htmlspecialchars($row['title']); ?></div>
+                            <div class="qn-muted">
+                                <?php echo htmlspecialchars($evaluation_types[$row['evaluation_type']] ?? ''); ?>
+                                <?php if($row['project_title']): ?>
+                                    &middot; <?php echo htmlspecialchars($row['project_title']); ?>
                                 <?php endif; ?>
+                            </div>
+                        </td>
+
+                        <td class="text-center">
+                            <strong><?php echo (int)$row['questions']; ?></strong>
+                            <div class="qn-muted"><?php echo (int)$row['questions'] === 1 ? 'question' : 'questions'; ?></div>
+                        </td>
+
+                        <td class="text-center">
+                            <strong><?php echo (int)$row['responses']; ?></strong>
+                            <div class="qn-muted"><?php echo (int)$row['responses'] === 1 ? 'response' : 'responses'; ?></div>
+                        </td>
+
+                        <td class="text-center">
+                            <span class="status-badge <?php echo $view[1]; ?>">
+                                <i class="fas <?php echo $view[2]; ?>"></i>
+                                <?php echo $view[0]; ?>
+                            </span>
+                        </td>
+
+                        <td class="text-center">
+
+                            <div class="dropdown">
+
+                                <button class="action-menu" type="button" data-toggle="dropdown"
+                                        aria-haspopup="true" aria-expanded="false"
+                                        aria-label="Actions for <?php echo htmlspecialchars($row['title']); ?>">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+
+                                <div class="dropdown-menu dropdown-menu-right">
+
+                                <?php foreach($menus[$row['status']] ?? array('view') as $key):
+
+                                    list($icon, $icon_class, $label, $hint, $kind, $arg) = $menu_items[$key];
+
+                                    if($kind === 'link'){
+                                        $href = "index.php?page=questionnaire_builder&id=$id&step=$arg";
+                                    }elseif($kind === 'results'){
+                                        $href = "index.php?page=evaluation_results&questionnaire=$id";
+                                    }else{
+                                        $href = '#';
+                                    }
+                                ?>
+
+                                    <a class="dropdown-item"
+                                       href="<?php echo $href; ?>"
+                                       <?php if($kind === 'status'): ?>data-status-to="<?php echo $arg; ?>"<?php endif; ?>
+                                       <?php if($kind === 'delete'): ?>data-delete="1"<?php endif; ?>>
+
+                                        <span class="dropdown-icon <?php echo $icon_class; ?>">
+                                            <i class="fas <?php echo $icon; ?>"></i>
+                                        </span>
+
+                                        <span>
+                                            <strong><?php echo $label; ?></strong>
+                                            <small><?php echo $hint; ?></small>
+                                        </span>
+
+                                    </a>
+
+                                <?php endforeach; ?>
+
+                                </div>
 
                             </div>
 
-                        </div>
+                        </td>
 
-                    </td>
+                    </tr>
 
-
-
-                    <!-- SEMESTER -->
-
-                    <td>
-
-                        <span class="semester-badge">
-
-                            <i class="fas fa-layer-group"></i>
-
-                            <?php
-
-                            if($row['semester'] == 1){
-
-                                echo "1st Semester";
-
-                            }elseif($row['semester'] == 2){
-
-                                echo "2nd Semester";
-
-                            }else{
-
-                                echo $row['semester'];
-
-                            }
-
-                            ?>
-
-                        </span>
-
-                    </td>
-
-
-
-                    <!-- QUESTIONS -->
-
-                    <td class="text-center">
-
-                        <div class="metric-box question-count">
-
-                            <div class="metric-icon">
-
-                                <i class="fas fa-question"></i>
-
-                            </div>
-
-                            <div>
-
-                                <strong>
-
-                                    <?php echo number_format($questions); ?>
-
-                                </strong>
-
-                                <small>
-                                    Questions
-                                </small>
-
-                            </div>
-
-                        </div>
-
-                    </td>
-
-
-
-                    <!-- EVALUATIONS -->
-
-                    <td class="text-center">
-
-                        <div class="metric-box answer-count">
-
-                            <div class="metric-icon">
-
-                                <i class="fas fa-check"></i>
-
-                            </div>
-
-                            <div>
-
-                                <strong>
-
-                                    <?php echo number_format($answers); ?>
-
-                                </strong>
-
-                                <small>
-                                    Responses
-                                </small>
-
-                            </div>
-
-                        </div>
-
-                    </td>
-
-
-
-                    <!-- STATUS -->
-
-                    <td class="text-center">
-
-                        <span
-                            class="status-badge <?php echo $status_class; ?>"
-                        >
-
-                            <i class="fas <?php echo $status_icon; ?>"></i>
-
-                            <?php echo $status_text; ?>
-
-                        </span>
-
-                    </td>
-
-
-
-                    <!-- ACTION -->
-
-                    <td class="text-center">
-
-                        <div class="dropdown">
-
-                            <button
-                                class="action-menu"
-                                type="button"
-                                data-toggle="dropdown"
-                                aria-haspopup="true"
-                                aria-expanded="false"
-                            >
-
-                                <i class="fas fa-ellipsis-v"></i>
-
-                            </button>
-
-
-
-                            <div class="dropdown-menu dropdown-menu-right">
-
-
-                                <a
-                                    class="dropdown-item manage_questionnaire"
-                                    href="index.php?page=manage_questionnaire&id=<?php echo $row['id']; ?>"
-                                >
-
-                                    <span class="dropdown-icon edit-icon">
-
-                                        <i class="fas fa-edit"></i>
-
-                                    </span>
-
-                                    <span>
-
-                                        <strong>
-                                            Manage Questionnaire
-                                        </strong>
-
-                                        <small>
-                                            Add or edit questions
-                                        </small>
-
-                                    </span>
-
-                                </a>
-
-
-                            </div>
-
-                        </div>
-
-                    </td>
-
-
-                </tr>
-
-
-                <?php endwhile; ?>
-
+                <?php endforeach; ?>
 
                 </tbody>
 
-
             </table>
-
 
         </div>
 
+    <?php endif; ?>
 
     </div>
 
-
 </div>
 
 
-</div>
+<script src="assets/js/questionnaire-status.js?v=<?php echo @filemtime('assets/js/questionnaire-status.js') ?: 1; ?>"></script>
+<script>
+$(function(){
+
+    // The menus open over the page, so the table's scroll area does not cut them off
+    $('#qn-list .action-menu').dropdown({ popperConfig: { positionFixed: true } });
+
+    // Status changes and deleting ask first (questionnaire-status.js), then reload the list
+    function reload(){
+        setTimeout(function(){ location.reload(); }, 700);
+    }
+
+    $('#qn-list').on('click', '[data-status-to]', function(e){
+        e.preventDefault();
+        var row = $(this).closest('tr');
+        QnStatus.change(row.data('id'), row.data('title'), $(this).data('status-to'), reload);
+    });
+
+    $('#qn-list').on('click', '[data-delete]', function(e){
+        e.preventDefault();
+        var row = $(this).closest('tr');
+        QnStatus.remove(row.data('id'), row.data('title'), reload);
+    });
+
+});
+</script>
 
 
 </div><!-- /questionnaires panel -->
@@ -1471,6 +1245,126 @@ if($summary_answers){
 
 
 
+.status-draft{
+
+    background:#f1f5f9;
+
+    color:#64748b;
+
+}
+
+
+
+.status-ready{
+
+    background:#dbeafe;
+
+    color:#1d4ed8;
+
+}
+
+
+
+.status-archived{
+
+    background:#f5f3ff;
+
+    color:#6d28d9;
+
+}
+
+
+
+/* =========================================================
+   QUESTIONNAIRE LIST
+========================================================= */
+
+.qn-title{
+
+    font-weight:700;
+
+    color:#1f2937;
+
+}
+
+
+
+.qn-muted{
+
+    color:#9ca3af;
+
+    font-size:12px;
+
+}
+
+
+
+.qn-notice{
+
+    display:flex;
+
+    gap:14px;
+
+    align-items:flex-start;
+
+    background:#f0fdf4;
+
+    border:1px dashed #86efac;
+
+    border-radius:14px;
+
+    padding:18px 20px;
+
+    color:#14532d;
+
+}
+
+
+
+.qn-notice i{
+
+    font-size:22px;
+
+    color:#10b981;
+
+    margin-top:2px;
+
+}
+
+
+
+.qn-notice a{
+
+    font-weight:700;
+
+    color:#047857;
+
+}
+
+
+
+.qn-fail-list{
+
+    text-align:left;
+
+    margin:14px 0 0;
+
+    padding-left:20px;
+
+    font-size:14px;
+
+}
+
+
+
+.qn-fail-list li{
+
+    margin-bottom:4px;
+
+}
+
+
+
 /* =========================================================
    ACTION
 ========================================================= */
@@ -1587,6 +1481,16 @@ if($summary_answers){
     background:#ecfdf5;
 
     color:#10b981;
+
+}
+
+
+
+.delete-icon{
+
+    background:#fef2f2;
+
+    color:#dc2626;
 
 }
 

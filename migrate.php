@@ -72,6 +72,33 @@ class Migrator {
 		$this->log[] = "added column $table.$column";
 	}
 
+	/*
+	| Lets a column hold NULL. Only ever widens what a column accepts, so
+	| every value already stored stays valid. $type is the column's existing
+	| type, e.g. 'INT(20)'.
+	*/
+	public function make_nullable($table, $column, $type){
+
+		$row = $this->db->query("
+			SELECT IS_NULLABLE FROM information_schema.COLUMNS
+			WHERE TABLE_SCHEMA = DATABASE()
+			AND TABLE_NAME = '".$this->db->real_escape_string($table)."'
+			AND COLUMN_NAME = '".$this->db->real_escape_string($column)."'
+		")->fetch_assoc();
+
+		if(!$row){
+			$this->log[] = "skipped $table.$column (no such column)";
+			return;
+		}
+
+		if($row['IS_NULLABLE'] === 'YES'){
+			return;
+		}
+
+		$this->run("ALTER TABLE `$table` MODIFY COLUMN `$column` $type NULL DEFAULT NULL");
+		$this->log[] = "$table.$column can now be left empty";
+	}
+
 	// Adds an index only if it is missing
 	public function add_index($table, $index, $columns){
 		if(!$this->table_exists($table) || $this->index_exists($table, $index)){
