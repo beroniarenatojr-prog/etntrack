@@ -11,11 +11,36 @@
 */
 
 $icon_class = isset($sidebar_icon_class) ? $sidebar_icon_class : 'nav-icon';
+
+// Who is signed in: the same picture and name as in the top bar
+$account_name = ucwords(trim((string)($_SESSION['login_firstname'] ?? '').' '.(string)($_SESSION['login_lastname'] ?? '')));
+$account_email = (string)($_SESSION['login_email'] ?? '');
+$account_avatar = basename((string)($_SESSION['login_avatar'] ?? ''));
+
+if($account_avatar === '' || !is_file(__DIR__.'/assets/uploads/'.$account_avatar)){
+    $account_avatar = 'no-image-available.png';
+}
 ?>
 
 <div class="sidebar-account">
 
     <ul class="nav nav-pills nav-sidebar flex-column nav-flat sidebar-menu">
+
+        <li class="nav-item">
+            <div class="nav-link sidebar-account-user" title="Signed in as <?php echo htmlspecialchars($account_name.($account_email !== '' ? ' ('.$account_email.')' : '')); ?>">
+                <!-- In the icons' column, so the name lines up with the menu -->
+                <i class="<?php echo $icon_class; ?> sidebar-account-avatar" aria-hidden="true">
+                    <img src="assets/uploads/<?php echo rawurlencode($account_avatar); ?>" alt=""
+                         onerror="this.onerror=null; this.src='assets/uploads/no-image-available.png';">
+                </i>
+                <p>
+                    <b><?php echo htmlspecialchars($account_name); ?></b>
+                    <?php if($account_email !== ''): ?>
+                        <span><?php echo htmlspecialchars($account_email); ?></span>
+                    <?php endif; ?>
+                </p>
+            </div>
+        </li>
 
         <li class="nav-item">
             <a href="javascript:void(0)" class="nav-link js-sidebar-manage-account">
@@ -72,6 +97,67 @@ $icon_class = isset($sidebar_icon_class) ? $sidebar_icon_class : 'nav-icon';
 
 .main-sidebar .sidebar-account .nav-link{
     white-space:nowrap;
+}
+
+/* The signed-in person: shown, not clicked */
+.main-sidebar .sidebar-account .nav-link.sidebar-account-user{
+    cursor:default;
+    padding-top:8px;
+    padding-bottom:8px;
+    margin-bottom:2px;
+}
+
+.main-sidebar .sidebar-account .nav-link.sidebar-account-user:hover{
+    background:transparent;
+    color:inherit;
+    transform:none;
+}
+
+.main-sidebar .sidebar-account .sidebar-account-avatar{
+    display:inline-flex !important;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+/* A little wider than the icon column, still centred on it */
+.main-sidebar .sidebar-account .sidebar-account-avatar img{
+    width:32px;
+    height:32px;
+    margin:0 -3px;
+    border-radius:50%;
+    object-fit:cover;
+    background:#ffffff;
+    border:2px solid #d1fae5;
+}
+
+/* A little space after the picture, which is wider than an icon */
+.main-sidebar .sidebar-account .sidebar-account-user p{
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+    margin:0;
+    padding-left:6px;
+    line-height:1.25;
+}
+
+.main-sidebar .sidebar-account .sidebar-account-user p b,
+.main-sidebar .sidebar-account .sidebar-account-user p span{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.main-sidebar .sidebar-account .sidebar-account-user p b{
+    font-size:14px;
+    font-weight:700;
+    color:#1f2937;
+}
+
+.main-sidebar .sidebar-account .sidebar-account-user p span{
+    font-size:12px;
+    font-weight:400;
+    color:#9ca3af;
 }
 
 /* Logout turns red, not green, when pointed at */
