@@ -40,32 +40,66 @@ return function(Migrator $m){
 	$m->add_column('activities', 'project_id', 'INT NULL DEFAULT NULL');
 	$m->add_index('activities', 'idx_project', '`project_id`');
 
-	// Give every activity that has no project one of its own, named after it
-	$m->run("
-		INSERT INTO projects (title, description, faculty_id, location, start_date, end_date,
-			academic_year, semester, lifecycle_status, implementation_date, created_by, created_at)
-		SELECT a.activity_name, a.purpose, a.faculty_id, a.venue, a.activity_date, a.activity_date,
-			a.academic_year, a.semester,
-			CASE WHEN a.status = 'approved' AND a.activity_date < CURDATE() THEN 'conducted'
-			     WHEN a.status = 'approved' THEN 'ready_for_conduct'
-			     WHEN a.status = 'rejected' THEN 'draft'
-			     ELSE 'for_approval' END,
-			CASE WHEN a.status = 'approved' AND a.activity_date < CURDATE() THEN a.activity_date ELSE NULL END,
-			a.faculty_id, a.created_at
-		FROM activities a
-		WHERE a.project_id IS NULL
+	/*
+	| If an earlier attempt at this step stopped halfway it may have left
+	| projects behind that nothing points at. Clear those out first, but only
+	| while no activity is linked yet, so a real project is never touched.
+	*/
+	$linked = (int)$m->query_value("SELECT COUNT(*) FROM activities WHERE project_id IS NOT NULL");
+
+	if($linked === 0){
+		$removed = $m->run_count("
+			DELETE FROM projects
+			WHERE id NOT IN (SELECT DISTINCT project_id FROM activities WHERE project_id IS NOT NULL)
+		");
+		if($removed){
+			$m->note("cleared $removed leftover project(s) from an earlier attempt");
+		}
+	}
+
+	/*
+	| Give every activity that has no project one of its own, named after it.
+	| Done one at a time so each activity is linked to the project just made for
+	| it. (Matching them up afterwards by title would compare text between two
+	| tables, which fails when they were created with different collations.)
+	*/
+	$activities = $m->rows("
+		SELECT id, activity_name, purpose, faculty_id, venue, activity_date,
+			academic_year, semester, status, created_at
+		FROM activities
+		WHERE project_id IS NULL
 	");
 
-	// Point each activity at the project just made for it
-	$m->run("
-		UPDATE activities a
-		INNER JOIN projects p
-			ON p.title = a.activity_name
-			AND p.start_date <=> a.activity_date
-			AND p.faculty_id <=> a.faculty_id
-		SET a.project_id = p.id
-		WHERE a.project_id IS NULL
-	");
+	foreach($activities as $row){
 
-	$m->note("every existing activity now has its own project");
+		$past = $row['activity_date'] !== null && $row['activity_date'] < date('Y-m-d');
+
+		if($row['status'] === 'approved'){
+			$status = $past ? 'conducted' : 'ready_for_conduct';
+		}elseif($row['status'] === 'rejected'){
+			$status = 'draft';
+		}else{
+			$status = 'for_approval';
+		}
+
+		$project_id = $m->insert('projects', array(
+			'title' => $row['activity_name'],
+			'description' => $row['purpose'],
+			'faculty_id' => $row['faculty_id'],
+			'location' => $row['venue'],
+			'start_date' => $row['activity_date'],
+			'end_date' => $row['activity_date'],
+			'academic_year' => $row['academic_year'],
+			'semester' => $row['semester'],
+			'lifecycle_status' => $status,
+			'implementation_date' => ($row['status'] === 'approved' && $past) ? $row['activity_date'] : null,
+			'created_by' => $row['faculty_id'],
+			'created_at' => $row['created_at']
+		));
+
+		$m->run("UPDATE activities SET project_id = $project_id WHERE id = ".(int)$row['id']);
+	}
+
+	$m->note(count($activities)." existing activit".(count($activities) === 1 ? "y" : "ies")." now ha"
+		.(count($activities) === 1 ? "s" : "ve")." a project");
 };

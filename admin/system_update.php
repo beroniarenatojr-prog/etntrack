@@ -11,6 +11,8 @@ if(($_SESSION['login_type'] ?? 0) != 1){
 }
 
 include 'db_connect.php';
+
+define('MIGRATOR_INCLUDED', true);   // keeps migrate.php from running on its own
 require_once 'migrate.php';
 
 $migrator = new Migrator($conn);

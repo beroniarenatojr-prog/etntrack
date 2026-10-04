@@ -81,13 +81,73 @@ class Migrator {
 		$this->log[] = "added index $table.$index";
 	}
 
-	// Creates a table only if it is missing
-	public function create_table($table, $definition){
-		if($this->table_exists($table)){
-			$this->log[] = "table $table already there";
+	/*
+	| The text collation the existing tables already use. New tables are made to
+	| match, otherwise comparing text between an old table and a new one fails
+	| with "Illegal mix of collations". Newer MariaDB picks a different default
+	| for new tables than older versions did, so this cannot be assumed.
+	*/
+	public function base_collation(){
+
+		if($this->collation !== null){
+			return $this->collation;
+		}
+
+		foreach(array('activities', 'users', 'faculty_list') as $table){
+
+			$row = $this->db->query("
+				SELECT TABLE_COLLATION FROM information_schema.TABLES
+				WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$table'
+			")->fetch_assoc();
+
+			if($row && !empty($row['TABLE_COLLATION'])){
+				return $this->collation = $row['TABLE_COLLATION'];
+			}
+		}
+
+		return $this->collation = 'utf8mb4_general_ci';
+	}
+
+	private $collation = null;
+
+	private function charset_of($collation){
+		return substr($collation, 0, strpos($collation, '_'));
+	}
+
+	// Brings a table that was made with the wrong collation into line
+	public function match_collation($table){
+
+		if(!$this->table_exists($table)){
 			return;
 		}
-		$this->run("CREATE TABLE `$table` ($definition) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+		$want = $this->base_collation();
+
+		$row = $this->db->query("
+			SELECT TABLE_COLLATION FROM information_schema.TABLES
+			WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '".$this->db->real_escape_string($table)."'
+		")->fetch_assoc();
+
+		if(!$row || $row['TABLE_COLLATION'] === $want){
+			return;
+		}
+
+		$this->run("ALTER TABLE `$table` CONVERT TO CHARACTER SET ".$this->charset_of($want)." COLLATE $want");
+		$this->log[] = "put $table on the same collation as the rest ($want)";
+	}
+
+	// Creates a table only if it is missing
+	public function create_table($table, $definition){
+
+		if($this->table_exists($table)){
+			$this->log[] = "table $table already there";
+			$this->match_collation($table);
+			return;
+		}
+
+		$collation = $this->base_collation();
+
+		$this->run("CREATE TABLE `$table` ($definition) ENGINE=InnoDB DEFAULT CHARSET=".$this->charset_of($collation)." COLLATE=$collation");
 		$this->log[] = "created table $table";
 	}
 
@@ -95,6 +155,52 @@ class Migrator {
 		if(!$this->db->query($sql)){
 			throw new Exception($this->db->error);
 		}
+	}
+
+	// Runs a statement and says how many rows it changed
+	public function run_count($sql){
+		$this->run($sql);
+		return $this->db->affected_rows;
+	}
+
+	// The first column of the first row, e.g. a COUNT(*)
+	public function query_value($sql){
+		$result = $this->db->query($sql);
+		if(!$result){
+			throw new Exception($this->db->error);
+		}
+		$row = $result->fetch_row();
+		return $row ? $row[0] : null;
+	}
+
+	// Every row a query returns, as an array
+	public function rows($sql){
+		$result = $this->db->query($sql);
+		if(!$result){
+			throw new Exception($this->db->error);
+		}
+		$rows = array();
+		while($row = $result->fetch_assoc()){
+			$rows[] = $row;
+		}
+		return $rows;
+	}
+
+	// Inserts one row from a column => value list and returns its new id.
+	// A null value is stored as NULL rather than an empty string.
+	public function insert($table, $values){
+
+		$columns = array();
+		$parts = array();
+
+		foreach($values as $column => $value){
+			$columns[] = "`$column`";
+			$parts[] = $value === null ? 'NULL' : "'".$this->db->real_escape_string((string)$value)."'";
+		}
+
+		$this->run("INSERT INTO `$table` (".implode(', ', $columns).") VALUES (".implode(', ', $parts).")");
+
+		return (int)$this->db->insert_id;
 	}
 
 	public function note($message){
@@ -148,7 +254,12 @@ class Migrator {
 }
 
 // Command line use: php migrate.php
-if(PHP_SAPI === 'cli' && isset($argv) && realpath($argv[0]) === realpath(__FILE__)){
+//
+// Anything that includes this file defines MIGRATOR_INCLUDED first, so the
+// block below runs only when the file itself was started from a terminal.
+// (Testing PHP_SAPI for 'cli' is not reliable: some hosts' php command reports
+// itself as cgi-fcgi, and the script would then do nothing and say nothing.)
+if(!defined('MIGRATOR_INCLUDED')){
 	require __DIR__.'/db_connect.php';
 	$migrator = new Migrator($conn);
 	list($applied, $errors) = $migrator->migrate();
