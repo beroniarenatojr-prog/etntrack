@@ -368,19 +368,7 @@ class="nav-link nav-faculty_list nav-new_faculty nav-edit_faculty">
 
 
 
-<!-- CALENDAR -->
-<li class="nav-item">
-
-    <a href="./index.php?page=calendar"
-       class="nav-link nav-calendar">
-
-        <i class="nav-icon fas fa-calendar-alt"></i>
-
-        <p>Calendar</p>
-
-    </a>
-
-</li>
+<!-- Calendar is in the top bar, at the upper right (topbar.php) -->
 
 
 

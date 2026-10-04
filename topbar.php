@@ -37,6 +37,37 @@
     color:#fff !important;
 }
 
+/* Calendar, at the upper right: green while you are on it */
+.main-header .nav-link.topbar-calendar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    height:42px;
+    padding:0 18px;
+    border-radius:50px;
+    background:#f8fafc;
+    font-weight:600;
+}
+
+.main-header .nav-link.topbar-calendar:hover,
+.main-header .nav-link.topbar-calendar.active{
+    background:#198754;
+    color:#fff !important;
+}
+
+/* On a narrow phone, just the icon */
+@media (max-width: 575px){
+    .main-header .nav-link.topbar-calendar{
+        width:42px;
+        padding:0;
+        justify-content:center;
+    }
+
+    .topbar-calendar-label{
+        display:none;
+    }
+}
+
 /* Every dropdown menu in the system, including the account menu in the sidebar */
 .dropdown-menu{
     border:none;
@@ -60,7 +91,7 @@
 }
 </style>
 
-<!-- Navbar. The signed-in person and their account menu are at the bottom of the sidebar (sidebar_account.php). -->
+<!-- Navbar: the menu button on the left, Calendar on the right. The signed-in person and their account menu are at the bottom of the sidebar (sidebar_account.php). -->
 <nav class="main-header navbar navbar-expand navbar-light">
 
     <!-- Left -->
@@ -76,5 +107,21 @@
         </li>
         <?php endif; ?>
     </ul>
+
+    <!-- Right -->
+    <?php if(isset($_SESSION['login_id'])):
+        $on_calendar = ($_GET['page'] ?? '') === 'calendar';
+    ?>
+    <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+            <a href="./index.php?page=calendar"
+               class="nav-link topbar-calendar<?php echo $on_calendar ? ' active' : ''; ?>"
+               title="Calendar"<?php echo $on_calendar ? ' aria-current="page"' : ''; ?>>
+                <i class="fas fa-calendar-alt"></i>
+                <span class="topbar-calendar-label">Calendar</span>
+            </a>
+        </li>
+    </ul>
+    <?php endif; ?>
 
 </nav>
