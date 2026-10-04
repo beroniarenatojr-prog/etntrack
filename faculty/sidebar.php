@@ -225,51 +225,76 @@
 
 
 
-                <li class="nav-item">
+                <!-- Projects, with the activities and reports that belong to them -->
+                <li class="nav-item has-treeview">
 
-                    <a href="./index.php?page=projects"
-                       class="nav-link nav-projects nav-project_detail">
+                    <a href="#" class="nav-link">
 
                         <i class="fas fa-project-diagram"></i>
 
-                        <p>Projects</p>
+                        <p>
+                        Projects
+                        <i class="right fas fa-angle-right"></i>
+                        </p>
 
                     </a>
+
+
+                    <ul class="nav nav-treeview">
+
+
+                    <li>
+
+                        <a href="./index.php?page=projects"
+                           class="nav-link tree-item nav-projects nav-project_detail">
+
+                            <i class="fas fa-folder-open nav-icon"></i>
+                            <p>All Projects</p>
+
+                        </a>
+
+                    </li>
+
+
+                    <li>
+
+                        <a href="./index.php?page=activities"
+                           class="nav-link tree-item nav-activities">
+
+                            <i class="fas fa-tasks nav-icon"></i>
+                            <p>Activities</p>
+
+                        </a>
+
+                    </li>
+
+
+                    <li>
+
+                        <a href="./index.php?page=result"
+                           class="nav-link tree-item nav-result">
+
+                            <i class="fas fa-file-contract nav-icon"></i>
+                            <p>Reports</p>
+
+                        </a>
+
+                    </li>
+
+
+                    </ul>
 
                 </li>
 
 
 
 
-                <li class="nav-item">
-
-                    <a href="./index.php?page=result"
-                       class="nav-link nav-result">
-
-                        <i class="fas fa-file-alt"></i>
-
-                        <p>Reports</p>
-
-                    </a>
-
-                </li>
+                <!-- Reports and Activities now sit under Projects, above -->
 
 
 
 
 
-                <li class="nav-item">
-
-                    <a href="./index.php?page=activities"
-                       class="nav-link nav-activities">
-
-                        <i class="fas fa-calendar-check"></i>
-
-                        <p>Activities</p>
-
-                    </a>
-
-                </li>
 
 
 

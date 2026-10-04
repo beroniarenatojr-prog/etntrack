@@ -184,6 +184,28 @@ if($summary_answers){
 
 
 <!-- =====================================================
+     TABS
+     The questionnaire itself, and the criteria its questions
+     are grouped under. Both used to be separate menu items.
+===================================================== -->
+
+<div class="qn-tabs" role="tablist">
+
+    <button type="button" class="qn-tab active" data-panel="questionnaires">
+        <i class="fas fa-file-alt"></i> Questionnaires
+    </button>
+
+    <button type="button" class="qn-tab" data-panel="criteria">
+        <i class="fas fa-sliders-h"></i> Evaluation Criteria
+    </button>
+
+</div>
+
+
+<div class="qn-panel active" data-panel="questionnaires">
+
+
+<!-- =====================================================
      QUESTIONNAIRE TABLE
 ===================================================== -->
 
@@ -612,8 +634,58 @@ if($summary_answers){
 </div>
 
 
+</div><!-- /questionnaires panel -->
+
+
+<div class="qn-panel" data-panel="criteria">
+
+    <?php
+    /* The criteria page, shown here instead of as its own menu item.
+       It is a self-contained fragment, like every other page. */
+    include 'admin/criteria_list.php';
+    ?>
+
+</div>
+
+
 
 <style>
+
+/* The two tabs on this page */
+
+.qn-tabs {
+    display: flex;
+    gap: 6px;
+    border-bottom: 1px solid #e9eef5;
+    margin: 0 0 22px;
+    overflow-x: auto;
+}
+
+.qn-tab {
+    border: none;
+    background: none;
+    padding: 12px 18px;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #7b8a9c;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.qn-tab:hover { color: #1d5b42; }
+
+.qn-tab.active {
+    color: #1d5b42;
+    border-bottom-color: #1d5b42;
+}
+
+.qn-panel { display: none; }
+.qn-panel.active { display: block; }
+
 
 /* =========================================================
    MAIN WRAPPER
@@ -1630,3 +1702,44 @@ if($summary_answers){
 
 </style>
 
+
+
+<script>
+$(function(){
+
+    /* Remembers which tab you were on, so adding or editing a criteria
+       brings you back here rather than to the questionnaire list. */
+
+    function show(panel){
+
+        $('.qn-tab').removeClass('active')
+            .filter('[data-panel="' + panel + '"]').addClass('active');
+
+        $('.qn-panel').removeClass('active')
+            .filter('[data-panel="' + panel + '"]').addClass('active');
+
+        try {
+            sessionStorage.setItem('questionnaire_tab', panel);
+        } catch (e) {
+            // private browsing: the tab just will not be remembered
+        }
+    }
+
+    $('.qn-tab').on('click', function(){
+        show($(this).data('panel'));
+    });
+
+    var opening = 'questionnaires';
+
+    if(location.hash === '#criteria'){
+        opening = 'criteria';
+    }else{
+        try {
+            opening = sessionStorage.getItem('questionnaire_tab') || 'questionnaires';
+        } catch (e) {}
+    }
+
+    show(opening);
+
+});
+</script>

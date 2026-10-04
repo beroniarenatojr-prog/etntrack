@@ -266,57 +266,20 @@
 
 
 
-<!-- EVALUATION (questionnaires + criteria) -->
+<!-- QUESTIONNAIRES (the evaluation criteria live on that page too) -->
 
-<li class="nav-item has-treeview">
+<li class="nav-item">
 
-<a href="#"
-class="nav-link">
+<a href="./index.php?page=questionnaire"
+class="nav-link nav-questionnaire nav-criteria_list nav-manage_questionnaire">
 
 <i class="nav-icon fas fa-clipboard-list"></i>
 
-<p>
-Evaluation
-<i class="right fas fa-angle-right"></i>
-</p>
-
-</a>
-
-
-<ul class="nav nav-treeview">
-
-
-<li>
-
-<a href="./index.php?page=questionnaire"
-class="nav-link tree-item nav-questionnaire">
-
-<i class="fas fa-file-alt nav-icon"></i>
 <p>Questionnaires</p>
 
 </a>
 
 </li>
-
-
-<li>
-
-<a href="./index.php?page=criteria_list"
-class="nav-link tree-item nav-criteria_list">
-
-<i class="fas fa-sliders-h nav-icon"></i>
-<p>Evaluation Criteria</p>
-
-</a>
-
-</li>
-
-
-</ul>
-
-</li>
-
-
 
 
 
@@ -377,32 +340,64 @@ class="nav-link tree-item nav-faculty_list">
 
 
 
-<!-- PROJECTS -->
-<li class="nav-item">
+<!-- PROJECTS (with the activities and reports that belong to them) -->
+<li class="nav-item has-treeview">
 
-    <a href="./index.php?page=projects"
-       class="nav-link nav-projects nav-project_detail">
+    <a href="#" class="nav-link">
 
         <i class="nav-icon fas fa-project-diagram"></i>
 
-        <p>Projects</p>
+        <p>
+        Projects
+        <i class="right fas fa-angle-right"></i>
+        </p>
 
     </a>
 
-</li>
+
+    <ul class="nav nav-treeview">
 
 
-<!-- ACTIVITIES -->
-<li class="nav-item">
+    <li>
 
-    <a href="./index.php?page=activities"
-       class="nav-link nav-activities">
+        <a href="./index.php?page=projects"
+           class="nav-link tree-item nav-projects nav-project_detail">
 
-        <i class="nav-icon fas fa-tasks"></i>
+            <i class="fas fa-folder-open nav-icon"></i>
+            <p>All Projects</p>
 
-        <p>Activities</p>
+        </a>
 
-    </a>
+    </li>
+
+
+    <li>
+
+        <a href="./index.php?page=activities"
+           class="nav-link tree-item nav-activities">
+
+            <i class="fas fa-tasks nav-icon"></i>
+            <p>Activities</p>
+
+        </a>
+
+    </li>
+
+
+    <li>
+
+        <a href="./index.php?page=report"
+           class="nav-link tree-item nav-report">
+
+            <i class="fas fa-file-contract nav-icon"></i>
+            <p>Reports</p>
+
+        </a>
+
+    </li>
+
+
+    </ul>
 
 </li>
 
@@ -424,22 +419,7 @@ class="nav-link tree-item nav-faculty_list">
 
 
 
-<!-- REPORT -->
-
-
-<li class="nav-item">
-
-<a href="./index.php?page=report"
-class="nav-link nav-report">
-
-<i class="nav-icon fas fa-chart-line"></i>
-
-<p>Reports</p>
-
-</a>
-
-</li>
-
+<!-- Reports now sit under Projects, above -->
 
 
 <li class="nav-item">
