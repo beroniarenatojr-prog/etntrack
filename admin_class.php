@@ -9,11 +9,13 @@ ini_set('log_errors', '1');
 
 require_once __DIR__.'/project_actions.php';
 require_once __DIR__.'/questionnaire_actions.php';
+require_once __DIR__.'/report_actions.php';
 
 Class Action {
 
 	use ProjectActions;         // projects and their pre-activity documents
 	use QuestionnaireActions;   // building, publishing and closing questionnaires
+	use ReportActions;          // Progress and Terminal Reports, each belonging to a project
 
 	/*
 	| Records who did what, and when, in audit_log. A failure here never stops
@@ -711,255 +713,6 @@ Class Action {
 
 }
 
-function approve_reportadmin(){
-
-    extract($_POST);
-
-    $save = $this->db->query("
-        UPDATE uploaded_reports
-        SET status='Approved'
-        WHERE id='$id'
-    ");
-
-    return $save ? 1 : 0;
-}
-
-
-function reject_reportadmin(){
-
-    extract($_POST);
-
-    $save = $this->db->query("
-        UPDATE uploaded_reports
-        SET status='Rejected'
-        WHERE id='$id'
-    ");
-
-    return $save ? 1 : 0;
-}
-
-/*
-|--------------------------------------------------------------------------
-| REPORT FILTERS
-| Builds the WHERE conditions shared by the admin and coordinator report
-| lists from the report type tab, status tab, search box and dropdowns.
-|--------------------------------------------------------------------------
-*/
-private function report_filters($src, $prefix = '', $with_type = true){
-
-    $report_type = isset($src['report_type']) && $src['report_type'] == 'Progress Report'
-        ? 'Progress Report'
-        : 'Terminal Report';
-
-    $where = $with_type ? array("{$prefix}report_type = '$report_type'") : array();
-    $filtered = false;
-    $status = '';
-
-    if(!empty($src['search'])){
-        $search = $this->db->real_escape_string(trim($src['search']));
-        $where[] = "({$prefix}report_title LIKE '%$search%' OR {$prefix}file_name LIKE '%$search%')";
-        $filtered = true;
-    }
-
-    if(!empty($src['status']) && in_array($src['status'], array('Pending','Approved','Rejected'))){
-        $status = $src['status'];
-        $where[] = "{$prefix}status = '$status'";
-    }
-
-    if(!empty($src['category']) && in_array($src['category'], array('Research','Extension','Training'))){
-        $where[] = "{$prefix}Category = '{$src['category']}'";
-        $filtered = true;
-    }
-
-    if(!empty($src['coordinator'])){
-        $where[] = "{$prefix}uploaded_by = ".(int)$src['coordinator'];
-        $filtered = true;
-    }
-
-    // e.g. "pending terminal reports"
-    $label = strtolower(trim($status.' '.$report_type)).'s';
-
-    if($filtered){
-        $empty = "No $label match your filters.";
-    }elseif($status){
-        $empty = "No $label.";
-    }else{
-        $empty = "No $label uploaded yet.";
-    }
-
-    return array(
-        'where' => $where ? implode(' AND ', $where) : '1',
-        'empty' => '<tr><td colspan="7" class="text-center text-muted py-4">'.$empty.'</td></tr>'
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| REPORT COUNTS
-| Numbers for the report type and status tab badges (following the same
-| search/category/coordinator filters as the list) and the overall totals.
-| Coordinators only count their own reports.
-|--------------------------------------------------------------------------
-*/
-function report_counts(){
-
-    $src = $_POST;
-    unset($src['status']);
-
-    $scope = "1";
-
-    if($_SESSION['login_type'] != 1){
-        unset($src['coordinator']);
-        $scope = "uploaded_by = ".(int)$_SESSION['login_id'];
-    }
-
-    $filters = $this->report_filters($src, '', false);
-
-    $empty = array('Total' => 0, 'Pending' => 0, 'Approved' => 0, 'Rejected' => 0);
-
-    $types = array(
-        'Terminal Report' => $empty,
-        'Progress Report' => $empty
-    );
-
-    $q = $this->db->query("
-        SELECT report_type, status, COUNT(*) AS total
-        FROM uploaded_reports
-        WHERE $scope AND {$filters['where']}
-        GROUP BY report_type, status
-    ");
-
-    while($r = $q->fetch_assoc()){
-
-        $status = ucfirst(strtolower($r['status']));
-
-        $types[$r['report_type']]['Total'] += $r['total'];
-
-        if(isset($types[$r['report_type']][$status])){
-            $types[$r['report_type']][$status] += $r['total'];
-        }
-    }
-
-    $overall = $empty;
-
-    $q = $this->db->query("
-        SELECT status, COUNT(*) AS total
-        FROM uploaded_reports
-        WHERE $scope
-        GROUP BY status
-    ");
-
-    while($r = $q->fetch_assoc()){
-
-        $status = ucfirst(strtolower($r['status']));
-
-        $overall['Total'] += $r['total'];
-
-        if(isset($overall[$status])){
-            $overall[$status] += $r['total'];
-        }
-    }
-
-    return json_encode(array('types' => $types, 'overall' => $overall));
-}
-
-function list_reportsadmin(){
-
-    $filters = $this->report_filters($_POST, 'r.');
-
-    $output = "";
-    $i = 1;
-
-    $q = $this->db->query("
-        SELECT r.*, CONCAT(f.firstname,' ',f.lastname) AS uploader
-        FROM uploaded_reports r
-        LEFT JOIN faculty_list f
-            ON r.uploaded_by = f.id
-        WHERE {$filters['where']}
-        ORDER BY r.uploaded_at DESC
-    ");
-
-    if($q->num_rows == 0){
-        return $filters['empty'];
-    }
-
-    while($r = $q->fetch_assoc()){
- 
-        if($r['status'] == "Approved"){ 
-            $status = "<span class='badge badge-success'>Approved</span>"; 
-        } 
-        elseif($r['status'] == "Rejected"){ 
-            $status = "<span class='badge badge-danger'>Rejected</span>"; 
-        } 
-        else{ 
-            $status = "<span class='badge badge-warning'>Pending</span>"; 
-        } 
- 
-        $output .= ' 
-        <tr> 
-            <td>'.$i++.'</td> 
- 
-            <td>'.$r['report_title'].'</td>
- 
-            <td>'.$r['file_name'].'</td> 
- 
-            <td>'.(!empty($r['uploader']) ? $r['uploader'] : 'Unknown').'</td> 
- 
-            <td>'.date("F d, Y h:i A",strtotime($r['uploaded_at'])).'</td> 
- 
-            <td>'.$status.'</td> 
- 
-            <td> 
- 
-                <a href="uploads/reports/'.$r['file_name'].'" 
-                   target="_blank" 
-                   class="btn btn-info btn-sm"> 
-                    <i class="fa fa-eye"></i> View 
-                </a>'; 
- 
-        /* =========================================
-           PENDING  -> Approve or Reject
-           REJECTED -> can still be Approved
-        ========================================= */ 
- 
-        if($r['status'] != "Approved"){ 
- 
-            $output .= ' 
-                <button class="btn btn-success btn-sm approve-report" 
-                        data-id="'.$r['id'].'"> 
-                    <i class="fa fa-check"></i> Approve 
-                </button>'; 
-        } 
- 
-        if($r['status'] == "Pending"){ 
- 
-            $output .= ' 
-                <button class="btn btn-danger btn-sm reject-report" 
-                        data-id="'.$r['id'].'"> 
-                    <i class="fa fa-times"></i> Reject 
-                </button>'; 
-        } 
- 
-        /* =========================================
-           DELETE
-           Always available
-        ========================================= */ 
- 
-        $output .= ' 
-                <button class="btn btn-outline-danger btn-sm action-btn delete-report" 
-                        data-id="'.$r['id'].'" 
-                        title="Delete Report"> 
-                    <i class="fa fa-trash"></i> 
-                </button> 
- 
-            </td> 
-        </tr>'; 
-    } 
- 
-    return $output; 
-}
-
-
 /*
 |--------------------------------------------------------------------------
 | ACTIVITY FILTERS
@@ -1000,6 +753,13 @@ private function activity_filters($src, $search_columns, $prefix = ''){
 
     if(!empty($src['coordinator'])){
         $where .= " AND {$prefix}faculty_id = ".(int)$src['coordinator'];
+    }
+
+    // A project, or "none" for activities that have no project yet
+    if(isset($src['project']) && $src['project'] !== ''){
+        $where .= $src['project'] === 'none'
+            ? " AND {$prefix}project_id IS NULL"
+            : " AND {$prefix}project_id = ".(int)$src['project'];
     }
 
     return $where;
@@ -1462,9 +1222,10 @@ private function calendar_activities($statuses){
     $in = "'".implode("','", $statuses)."'";
 
     $qry = $this->db->query("
-        SELECT a.*, CONCAT(f.firstname, ' ', f.lastname) AS coordinator
+        SELECT a.*, CONCAT(f.firstname, ' ', f.lastname) AS coordinator, p.title AS project_title
         FROM activities a
         LEFT JOIN faculty_list f ON f.id = a.faculty_id
+        LEFT JOIN projects p ON p.id = a.project_id
         WHERE a.status IN ($in)
         ORDER BY a.activity_date, a.id
     ");
@@ -1525,7 +1286,9 @@ function calendar_events(){
                 'conflict' => $conflict,
                 'venue' => (string)$row['venue'],
                 'coordinator' => !empty($row['coordinator']) ? $row['coordinator'] : 'Unknown coordinator',
-                'purpose' => (string)$row['purpose']
+                'purpose' => (string)$row['purpose'],
+                'project' => (string)($row['project_title'] ?? ''),
+                'time' => $this->time_range($row['start_time'] ?? null, $row['end_time'] ?? null)
             )
         );
     }
@@ -1802,10 +1565,22 @@ function save_activity(){
         return "An activity can have up to ".self::ACTIVITY_MAX_IMAGES." pictures.";
     }
 
+    list($project_id, $start_time, $end_time, $project_error) = $this->activity_project_and_times();
+
+    if($project_error){
+        return $project_error;
+    }
+
     $activity_name = $this->db->real_escape_string($_POST['activity_name']);
     $purpose = $this->db->real_escape_string($_POST['purpose']);
     $description = $this->db->real_escape_string($_POST['description']);
     $venue = $this->db->real_escape_string($venue_text);
+
+    // The project and times, once the database update has added them
+    $link_columns = $project_id ? ", project_id, start_time, end_time" : "";
+    $link_values = $project_id
+        ? ", $project_id, ".($start_time ? "'$start_time'" : "NULL").", ".($end_time ? "'$end_time'" : "NULL")
+        : "";
 
     $save = $this->db->query("
         INSERT INTO activities
@@ -1817,6 +1592,7 @@ function save_activity(){
             activity_date,
             venue,
             image
+            $link_columns
         )
         VALUES
         (
@@ -1827,6 +1603,7 @@ function save_activity(){
             '$activity_date',
             '$venue',
             ''
+            $link_values
         )
     ");
 
@@ -1836,7 +1613,59 @@ function save_activity(){
 
     $this->store_activity_images($this->db->insert_id, $files);
 
+    if($project_id){
+        $this->refresh_lifecycle_status($project_id);
+    }
+
     return 1;
+}
+
+/*
+| The project an activity belongs to, and its start and end time.
+| The project is required and must be one of the coordinator's own projects;
+| the times are optional, but the activity must end after it starts.
+| Returns [project_id, start_time, end_time, error]. Before the database
+| update that adds the times, nothing is asked: [null, null, null, ''].
+*/
+private function activity_project_and_times(){
+
+    if(!$this->links_ready()){
+        return array(null, null, null, '');
+    }
+
+    $project_id = (int)($_POST['project_id'] ?? 0);
+
+    if($project_id <= 0){
+        return array(0, null, null, "Choose the project this activity belongs to.");
+    }
+
+    if(!$this->project_for_user($project_id)){
+        return array(0, null, null, "You can only add activities to your own projects.");
+    }
+
+    $times = array();
+
+    foreach(array('start_time' => 'start', 'end_time' => 'end') as $field => $word){
+        $value = trim((string)($_POST[$field] ?? ''));
+        if($value === ''){
+            $times[$field] = null;
+            continue;
+        }
+        if(!preg_match('/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/', $value)){
+            return array(0, null, null, "Please enter the $word time like 08:00 AM.");
+        }
+        $times[$field] = substr($value, 0, 5);
+    }
+
+    if($times['end_time'] && !$times['start_time']){
+        return array(0, null, null, "Please enter the start time as well.");
+    }
+
+    if($times['start_time'] && $times['end_time'] && $times['end_time'] <= $times['start_time']){
+        return array(0, null, null, "The activity must end after it starts.");
+    }
+
+    return array($project_id, $times['start_time'], $times['end_time'], '');
 }
 
 // Coordinator edits their own pending / "Needs Revision" activity; saving resubmits it as Pending.
@@ -1854,7 +1683,7 @@ function update_activity(){
     $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
     $faculty_id = (int)$_SESSION['login_id'];
 
-    $qry = $this->db->query("SELECT status FROM activities WHERE id = $id AND faculty_id = $faculty_id");
+    $qry = $this->db->query("SELECT status, project_id FROM activities WHERE id = $id AND faculty_id = $faculty_id");
 
     if($qry->num_rows == 0){
         return "You can only edit your own activities.";
@@ -1899,10 +1728,20 @@ function update_activity(){
         return "An activity can have up to ".self::ACTIVITY_MAX_IMAGES." pictures. Remove some before adding more.";
     }
 
+    list($project_id, $start_time, $end_time, $project_error) = $this->activity_project_and_times();
+
+    if($project_error){
+        return $project_error;
+    }
+
     $activity_name = $this->db->real_escape_string($_POST['activity_name']);
     $purpose = $this->db->real_escape_string($_POST['purpose']);
     $description = $this->db->real_escape_string($_POST['description']);
     $venue = $this->db->real_escape_string($venue_text);
+
+    $links = $project_id
+        ? ", project_id = $project_id, start_time = ".($start_time ? "'$start_time'" : "NULL").", end_time = ".($end_time ? "'$end_time'" : "NULL")
+        : "";
 
     $save = $this->db->query("
         UPDATE activities SET
@@ -1913,6 +1752,7 @@ function update_activity(){
             venue = '$venue',
             status = 'pending',
             revision_note = NULL
+            $links
         WHERE id = $id AND faculty_id = $faculty_id
     ");
 
@@ -1925,6 +1765,11 @@ function update_activity(){
     }
 
     $this->store_activity_images($id, $files);
+
+    // Both projects' stages, when it moved to another project
+    foreach(array_unique(array_filter(array((int)$current['project_id'], (int)$project_id))) as $pid){
+        $this->refresh_lifecycle_status($pid);
+    }
 
     return 1;
 }
@@ -1956,41 +1801,64 @@ function activity_table(){
 
     $filters = $this->activity_filters(
         $src,
-        array('a.activity_name', "CONCAT(f.firstname, ' ', f.lastname)", 'a.venue'),
+        array('a.activity_name', "CONCAT(f.firstname, ' ', f.lastname)", 'a.venue', 'p.title'),
         'a.'
     );
 
     $qry = $this->db->query("
-        SELECT a.*, CONCAT(f.firstname, ' ', f.lastname) AS implementer
+        SELECT a.*, CONCAT(f.firstname, ' ', f.lastname) AS implementer,
+            p.title AS project_title, p.faculty_id AS project_faculty, p.created_by AS project_creator,
+            (SELECT COUNT(DISTINCT ea.evaluation_id) FROM evaluation_answers ea WHERE ea.activity_id = a.id) AS evaluations
         FROM activities a
         LEFT JOIN faculty_list f ON f.id = a.faculty_id
+        LEFT JOIN projects p ON p.id = a.project_id
         WHERE 1 $filters ".($mine_only ? "AND a.faculty_id = $user_id" : "")."
         ORDER BY a.activity_date DESC, a.id DESC
     ");
 
     $rows = array();
+    $linked = $this->links_ready();
+    $today = date('Y-m-d');
 
     while($row = $qry->fetch_assoc()){
 
         $own = (int)$row['faculty_id'] === $user_id && !$is_admin;
+        $project_id = $row['project_id'] !== null && $row['project_title'] !== null ? (int)$row['project_id'] : null;
+        $start = $linked ? $row['start_time'] : null;
+        $end = $linked ? $row['end_time'] : null;
+
         $rows[] = array(
             'id' => (int)$row['id'],
             'ref' => sprintf('ACT-%04d', $row['id']),
             'title' => $row['activity_name'],
             'date' => $row['activity_date'],
             'date_display' => date('M d, Y', strtotime($row['activity_date'])),
+            'start_time' => $start ? substr($start, 0, 5) : '',
+            'end_time' => $end ? substr($end, 0, 5) : '',
+            'time_display' => $this->time_range($start, $end),
             'venue' => (string)$row['venue'],
             'implementer' => !empty($row['implementer']) ? $row['implementer'] : 'Unknown coordinator',
+            'project_id' => $project_id,
+            'project_ref' => $project_id ? sprintf('PRJ-%04d', $project_id) : '',
+            'project_title' => $project_id ? $row['project_title'] : '',
+            // Only someone who may open the project gets a link to it
+            'can_open_project' => $project_id && ($is_admin
+                || (int)$row['project_faculty'] === $user_id || (int)$row['project_creator'] === $user_id),
             'status' => $row['status'],
             'status_label' => $this->activity_status_label($row['status']),
+            'phase' => $row['status'] !== 'approved' ? ''
+                : ($row['activity_date'] < $today ? 'conducted' : ($row['activity_date'] === $today ? 'today' : 'upcoming')),
             'revision_note' => $row['revision_note'],
             'purpose' => (string)$row['purpose'],
             'description' => (string)$row['description'],
+            'evaluations' => (int)$row['evaluations'],
             'images' => array(),   // filled below
             'own' => $own,
             'can_edit' => $own && in_array($row['status'], array('pending', 'revision')),
             'can_delete' => $is_admin || $own,
-            'can_review' => $is_admin
+            'can_review' => $is_admin,
+            // Linking to a project: the admin always; a coordinator their own activity that has none
+            'can_assign' => $linked && ($is_admin || ($own && !$project_id))
         );
     }
 
@@ -2033,6 +1901,16 @@ function bulk_activity_action(){
 
     $in = implode(',', $ids);
 
+    // The projects these activities belong to, so their stages can follow
+    $projects = array();
+    $qry = $this->db->query("SELECT DISTINCT project_id FROM activities WHERE id IN ($in) AND project_id IS NOT NULL");
+    while($row = $qry->fetch_row()){
+        $projects[] = (int)$row[0];
+    }
+
+    // Who reviewed it and when, once the database update has added those columns
+    $reviewed = $this->links_ready() ? ", reviewed_by = $user_id, reviewed_at = NOW()" : "";
+
     if($do == 'approve' || $do == 'reject'){
 
         if(!$is_admin){
@@ -2040,7 +1918,13 @@ function bulk_activity_action(){
         }
 
         if($do == 'reject'){
-            $this->db->query("UPDATE activities SET status = 'rejected', revision_note = NULL WHERE id IN ($in)");
+            // The reason, when one is given, is kept for the coordinator to read
+            $note = trim((string)($_POST['note'] ?? ''));
+            $note_sql = $note === '' ? "NULL" : "'".$this->db->real_escape_string($note)."'";
+            $this->db->query("UPDATE activities SET status = 'rejected', revision_note = $note_sql $reviewed WHERE id IN ($in)");
+            foreach($projects as $pid){
+                $this->refresh_lifecycle_status($pid);
+            }
             return 1;
         }
 
@@ -2060,7 +1944,11 @@ function bulk_activity_action(){
                 }
             }
 
-            $this->db->query("UPDATE activities SET status = 'approved', revision_note = NULL WHERE id = ".(int)$row['id']);
+            $this->db->query("UPDATE activities SET status = 'approved', revision_note = NULL $reviewed WHERE id = ".(int)$row['id']);
+        }
+
+        foreach($projects as $pid){
+            $this->refresh_lifecycle_status($pid);
         }
 
         return $skipped ? "Not approved -\n".implode("\n", $skipped) : 1;
@@ -2094,10 +1982,134 @@ function bulk_activity_action(){
 
         $this->db->query("DELETE FROM activities WHERE id IN ($in) $owner_sql");
 
+        foreach($projects as $pid){
+            $this->refresh_lifecycle_status($pid);
+        }
+
         return 1;
     }
 
     return "Unknown action.";
+}
+
+/*
+| Links an activity to its project: the admin for any activity (also moving
+| it to another project), a coordinator for their own activity that has no
+| project yet, and only to one of their own projects. Nothing is guessed.
+*/
+function activity_assign_project(){
+
+    if(empty($_SESSION['login_id'])){
+        return "Please log in again.";
+    }
+
+    if(!$this->links_ready()){
+        return "Apply the latest database update in System Update first.";
+    }
+
+    $id = (int)($_POST['id'] ?? 0);
+    $project_id = (int)($_POST['project_id'] ?? 0);
+    $activity = $this->db->query("SELECT id, faculty_id, project_id, activity_name FROM activities WHERE id = $id")->fetch_assoc();
+
+    if(!$activity){
+        return "That activity was not found.";
+    }
+
+    if(!$this->is_admin()){
+        if((int)$activity['faculty_id'] !== (int)$_SESSION['login_id'] || $activity['project_id']){
+            return "Only the Extension Office can move an activity to another project.";
+        }
+    }
+
+    if(!$this->project_for_user($project_id)){
+        return "Choose one of your projects.";
+    }
+
+    $this->db->query("UPDATE activities SET project_id = $project_id WHERE id = $id");
+
+    $this->refresh_lifecycle_status($project_id);
+    if($activity['project_id'] && (int)$activity['project_id'] !== $project_id){
+        $this->refresh_lifecycle_status((int)$activity['project_id']);
+    }
+
+    $this->audit_project('activity_linked', $project_id, $activity['activity_name']);
+
+    return 1;
+}
+
+/*
+| Documentation photos for an approved activity. Editing an activity is only
+| possible while it waits for approval, but the photos of the day are taken
+| once it is approved and conducted, so its coordinator may add them (and
+| remove one added by mistake) without sending the activity back for review.
+*/
+private function own_approved_activity($id){
+
+    $id = (int)$id;
+    $faculty_id = (int)($_SESSION['login_id'] ?? 0);
+
+    return $this->db->query("
+        SELECT id, project_id, activity_name, status FROM activities
+        WHERE id = $id AND faculty_id = $faculty_id AND status = 'approved'
+    ")->fetch_assoc();
+}
+
+function activity_add_photos(){
+
+    if($this->post_too_large()){
+        return "The pictures are too large to send together (up to ".ini_get('post_max_size')."B per save). Add fewer at a time.";
+    }
+
+    $activity = $this->own_approved_activity($_POST['id'] ?? 0);
+
+    if(!$activity){
+        return "You can add photos to your own approved activities.";
+    }
+
+    list($files, $upload_error) = $this->validate_activity_uploads();
+
+    if($upload_error){
+        return $upload_error;
+    }
+
+    if(!$files){
+        return "Choose at least one picture.";
+    }
+
+    $id = (int)$activity['id'];
+    $existing = (int)$this->db->query("SELECT COUNT(*) AS c FROM activity_images WHERE activity_id = $id")->fetch_assoc()['c'];
+
+    if($existing + count($files) > self::ACTIVITY_MAX_IMAGES){
+        return "An activity can have up to ".self::ACTIVITY_MAX_IMAGES." pictures. It has $existing already.";
+    }
+
+    $this->store_activity_images($id, $files);
+
+    if($activity['project_id']){
+        $this->refresh_lifecycle_status((int)$activity['project_id']);
+        $this->audit_project('activity_photos_added', (int)$activity['project_id'], $activity['activity_name'].': '.count($files).' photo(s)');
+    }
+
+    return 1;
+}
+
+function activity_remove_photo(){
+
+    $image_id = (int)($_POST['image_id'] ?? 0);
+    $row = $this->db->query("SELECT activity_id FROM activity_images WHERE id = $image_id")->fetch_assoc();
+    $activity = $row ? $this->own_approved_activity($row['activity_id']) : null;
+
+    if(!$activity){
+        return "You can remove photos from your own approved activities.";
+    }
+
+    $this->delete_activity_images("id = $image_id");
+
+    if($activity['project_id']){
+        $this->refresh_lifecycle_status((int)$activity['project_id']);
+    }
+
+    return 1;
 }
 
 // Admin sends a pending activity back to its coordinator with a note
@@ -2114,15 +2126,21 @@ function set_activity_revision(){
         return "Please write what the coordinator should change.";
     }
 
-    $qry = $this->db->query("SELECT status FROM activities WHERE id = $id");
+    $qry = $this->db->query("SELECT status, project_id FROM activities WHERE id = $id");
+    $activity = $qry->fetch_assoc();
 
-    if($qry->num_rows == 0 || $qry->fetch_assoc()['status'] != 'pending'){
+    if(!$activity || $activity['status'] != 'pending'){
         return "Only pending activities can be sent back for revision.";
     }
 
     $note = $this->db->real_escape_string($note);
+    $reviewed = $this->links_ready() ? ", reviewed_by = ".(int)$_SESSION['login_id'].", reviewed_at = NOW()" : "";
 
-    $save = $this->db->query("UPDATE activities SET status = 'revision', revision_note = '$note' WHERE id = $id");
+    $save = $this->db->query("UPDATE activities SET status = 'revision', revision_note = '$note' $reviewed WHERE id = $id");
+
+    if($save && $activity['project_id']){
+        $this->refresh_lifecycle_status((int)$activity['project_id']);
+    }
 
     return $save ? 1 : $this->db->error;
 }
@@ -2459,267 +2477,6 @@ function update_activity_status(){
 		}
 			return 1;
 	}
-
-	function upload_report(){
-
-    extract($_POST);
-
-    if(!isset($_FILES['report']) || $_FILES['report']['error'] != 0){
-        return "No file uploaded.";
-    }
-
-    if(!isset($report_type) || !in_array($report_type, array('Terminal Report','Progress Report'))){
-        return "Invalid report type.";
-    }
-
-    $uploaded_by = $_SESSION['login_id'];
-
-    $file = $_FILES['report'];
-    $filename = time().'_'.$file['name'];
-
-    if(!is_dir('uploads/reports')){
-        mkdir('uploads/reports',0777,true);
-    }
-
-    if(move_uploaded_file($file['tmp_name'],'uploads/reports/'.$filename)){
-
-        $save = $this->db->query("
-            INSERT INTO uploaded_reports
-            (report_title, report_type, file_name, uploaded_by, Category)
-            VALUES
-            ('$title', '$report_type', '$filename', '$uploaded_by', '$category')
-        ");
-
-        if($save){
-            return 1;
-        }else{
-            return $this->db->error;
-        }
-
-    }
-
-    return "Upload Failed";
-}
-
-
-function reject_report(){
-
-    extract($_POST);
-
-    $save = $this->db->query("
-        UPDATE uploaded_reports
-        SET status='Rejected'
-        WHERE id='$id'
-    ");
-
-    return $save ? 1 : 0;
-}
-
-function list_reports(){
-
-    $uploaded_by = $_SESSION['login_id'];
-
-    // Coordinators only ever see their own reports
-    $src = $_GET;
-    unset($src['coordinator']);
-
-    $filters = $this->report_filters($src);
-
-    $sort = array(
-        'newest' => 'uploaded_at DESC',
-        'oldest' => 'uploaded_at ASC',
-        'title'  => 'report_title ASC'
-    );
-
-    $order = isset($_GET['sort']) && isset($sort[$_GET['sort']])
-        ? $sort[$_GET['sort']]
-        : $sort['newest'];
-
-    $output = "";
-    $i = 1;
-
-    $q = $this->db->query("
-        SELECT *
-        FROM uploaded_reports
-        WHERE uploaded_by = '$uploaded_by'
-        AND {$filters['where']}
-        ORDER BY $order
-    ");
-
-    if($q->num_rows == 0){
-        return $filters['empty'];
-    }
-
-    while($r = $q->fetch_assoc()){
-
-        $file = "uploads/reports/".$r['file_name'];
-
-        // File size
-        $size = file_exists($file) ? round(filesize($file)/1048576,2)." MB" : "-";
-
-        // Category
-        $category = !empty($r['Category']) ? $r['Category'] : 'General';
-
-        // Status Badge
-        if(strtolower($r['status']) == "approved"){
-
-            $status = '<span class="badge badge-success">
-                            <i class="fa fa-check-circle"></i> Approved
-                       </span>';
-
-        }elseif(strtolower($r['status']) == "rejected"){
-
-            $status = '<span class="badge badge-danger">
-                            <i class="fa fa-times-circle"></i> Rejected
-                       </span>';
-
-        }elseif(strtolower($r['status']) == "pending"){
-
-            $status = '<span class="badge badge-warning">
-                            <i class="fa fa-clock"></i> Pending
-                       </span>';
-
-        }else{
-
-            $status = '<span class="badge badge-secondary">'.$r['status'].'</span>';
-
-        }
-
-        $output .= '
-
-        <tr>
-
-            <td>'.$i++.'</td>
-
-            <td>
-
-                <div class="d-flex align-items-center">
-
-                    <div class="report-icon mr-3">
-                        <i class="fa fa-file-pdf text-danger"></i>
-                    </div>
-
-                    <div>
-
-                        <strong>'.$r['report_title'].'</strong>
-
-                        <br>
-
-                        <small class="text-muted">'.$r['file_name'].'</small>
-
-                    </div>
-
-                </div>
-
-            </td>
-
-            <td>
-
-                <span class="badge badge-info">
-                    '.$category.'
-                </span>
-
-            </td>
-
-            <td>
-
-                '.date("M d, Y",strtotime($r['uploaded_at'])).'
-
-                <br>
-
-                <small class="text-muted">
-                    '.date("h:i A",strtotime($r['uploaded_at'])).'
-                </small>
-
-            </td>
-
-            <td>'.$size.'</td>
-
-            <td>'.$status.'</td>
-
-            <td>
-
-                <a href="'.$file.'"
-                   target="_blank"
-                   class="btn btn-outline-success btn-sm action-btn">
-                    <i class="fa fa-eye"></i>
-                </a>
-
-                <a href="'.$file.'"
-                   download
-                   class="btn btn-outline-primary btn-sm action-btn">
-                    <i class="fa fa-download"></i>
-                </a>
-
-                <button
-                    class="btn btn-outline-danger btn-sm action-btn"
-                    onclick="delete_report('.$r['id'].')">
-                    <i class="fa fa-trash"></i>
-                </button>
-
-            </td>
-
-        </tr>';
-
-    }
-
-    return $output;
-}
-function approve_report(){
-
-    extract($_POST);
-
-    $save = $this->db->query("
-        UPDATE uploaded_reports
-        SET status='Approved'
-        WHERE id='$id'
-    ");
-
-    return $save ? 1 : 0;
-}
-
-
-////admin 
-function delete_report(){
-
-    $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
-
-    if($id <= 0){
-        return "Report not found.";
-    }
-
-    // The admin may delete any report; a coordinator only their own
-    $own = $_SESSION['login_type'] == 1 ? "" : " AND uploaded_by = ".(int)$_SESSION['login_id'];
-
-    $q = $this->db->query("SELECT file_name FROM uploaded_reports WHERE id = $id $own");
-
-    if($q->num_rows == 0){
-        return "You can only delete your own reports.";
-    }
-
-    $row = $q->fetch_assoc();
-
-    $file = "uploads/reports/".basename($row['file_name']);
-
-    if(is_file($file)){
-        unlink($file);
-    }
-
-    $delete = $this->db->query("DELETE FROM uploaded_reports WHERE id = $id $own");
-
-    if($delete){
-        return 1;
-    }else{
-        return $this->db->error;
-    }
-
-}
-
-
-
-
-
-
 
 	function save_evaluation(){
 		extract($_POST);

@@ -19,7 +19,7 @@ if($project_id <= 0){
 }
 ?>
 
-<link rel="stylesheet" href="assets/css/project.css">
+<link rel="stylesheet" href="assets/css/project.css?v=<?php echo @filemtime("assets/css/project.css") ?: 1; ?>">
 
 <div id="pj-detail" data-project="<?php echo $project_id; ?>" data-admin="<?php echo $is_admin ? 1 : 0; ?>">
 
@@ -32,14 +32,17 @@ if($project_id <= 0){
 
     <div id="pj-content" style="display:none">
 
-        <!-- HEADER -->
+        <!-- HEADER: which project, whose, and where it stands -->
         <div class="pj-head">
             <div class="pj-head-icon"><i class="fas fa-stream"></i></div>
-            <div>
+            <div class="pj-head-text">
+                <div class="pj-head-ref" id="pj-ref"></div>
                 <h1 id="pj-title">&nbsp;</h1>
-                <p><span id="pj-ref"></span> &middot; <span id="pj-coordinator"></span></p>
+                <p id="pj-head-meta"></p>
+                <p class="pj-head-coordinator"><i class="fas fa-user-tie"></i> Coordinator: <span id="pj-coordinator"></span></p>
             </div>
             <div class="pj-head-actions">
+                <span class="pj-head-stage" id="pj-head-stage"></span>
                 <a class="pj-btn" href="index.php?page=projects">
                     <i class="fas fa-arrow-left"></i> All Projects
                 </a>
@@ -52,6 +55,8 @@ if($project_id <= 0){
             <h2 class="pj-section-title"><i class="fas fa-route"></i> Project Lifecycle</h2>
             <p class="pj-section-sub" id="pj-progress-text"></p>
             <div class="pj-timeline" id="pj-timeline"></div>
+            <!-- Each part of the project at a glance; a card opens its tab -->
+            <div class="pj-summary" id="pj-summary"></div>
         </div>
 
 
@@ -68,6 +73,7 @@ if($project_id <= 0){
 
             <div class="pj-panel active" data-panel="overview">
                 <dl class="pj-overview" id="pj-facts"></dl>
+                <div id="pj-stage" class="mt-4"></div>
                 <div id="pj-description" class="mt-3"></div>
             </div>
 
@@ -76,25 +82,21 @@ if($project_id <= 0){
             </div>
 
             <div class="pj-panel" data-panel="conducting">
-                <h3 class="pj-section-title"><i class="fas fa-calendar-check"></i> Activities</h3>
-                <p class="pj-section-sub">The events run under this project. Each approved activity gets a QR code that participants scan to evaluate it.</p>
+                <div class="pj-step-head">
+                    <h3 class="pj-section-title"><i class="fas fa-calendar-check"></i> Activities, Evaluation and Documentation</h3>
+                    <p class="pj-section-sub">The events run under this project. Each approved activity gets a QR code that participants scan to evaluate it, and its photos are its documentation.</p>
+                    <div id="pj-activity-actions" class="pj-step-add"></div>
+                </div>
                 <div id="pj-activities"></div>
             </div>
 
             <div class="pj-panel" data-panel="post">
-                <h3 class="pj-section-title"><i class="fas fa-flag-checkered"></i> Post-Activity</h3>
-                <p class="pj-section-sub">Terminal Report, Progress Reports and the 3-year Impact Assessment.</p>
-                <div class="pj-empty">
-                    <i class="fas fa-hourglass-half"></i>
-                    Terminal and Progress Reports are not linked to projects yet, and Impact Assessment is not built yet.
-                    Both arrive in the next update.
-                    <div class="mt-2"><a href="index.php?page=report">Open the Reports page</a></div>
-                </div>
+                <div id="pj-post"></div>
             </div>
 
             <div class="pj-panel" data-panel="documents">
                 <h3 class="pj-section-title"><i class="fas fa-folder-open"></i> All Files</h3>
-                <p class="pj-section-sub">Every file attached to this project.</p>
+                <p class="pj-section-sub">Every file attached to this project, grouped by stage. Each one opens from its own record.</p>
                 <div id="pj-files"></div>
             </div>
 
@@ -173,4 +175,4 @@ if($project_id <= 0){
     </div>
 </div>
 
-<script src="assets/js/project-detail.js"></script>
+<script src="assets/js/project-detail.js?v=<?php echo @filemtime("assets/js/project-detail.js") ?: 1; ?>"></script>

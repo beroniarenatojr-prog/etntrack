@@ -24,7 +24,8 @@ $tables = array(
     'capsule'     => array('capsules', 'Capsule'),
     'proposal'    => array('proposals', 'Proposal'),
     'preparation' => array('conduct_preparations', 'Conduct Preparation'),
-    'designation' => array('designations', 'Designation')
+    'designation' => array('designations', 'Designation'),
+    'impact'      => array('impact_assessments', 'Impact Assessment')
 );
 
 $type = $_GET['type'] ?? '';

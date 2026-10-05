@@ -69,6 +69,67 @@ trait ProjectActions {
 				'times' => array('start_time','end_time'),
 				'checks' => array('venue_confirmed','personnel_assigned','materials_prepared')
 			)
+		) + ($this->links_ready() ? array(
+			// The last stage, years after the project: reviewed like the documents above
+			'impact' => array(
+				'table' => 'impact_assessments',
+				'label' => 'Impact Assessment',
+				'stage' => 'Impact Assessment',
+				'group' => 'post',
+				'text'  => array('title','findings','outcomes','beneficiary_impact','sustainability','recommendations'),
+				'dates' => array('period_start','period_end','assessment_date'),
+				'numbers' => array()
+			)
+		) : array());
+	}
+
+	/*
+	| Whether the database update that links activities and reports to their
+	| project (007_project_links) has been applied. New code reaches the server
+	| as soon as it is pushed, but that update is applied by hand afterwards,
+	| so until then the pages keep working without the new parts.
+	*/
+	private function links_ready(){
+		static $ready = null;
+		if($ready === null){
+			$ready = $this->db->query("
+				SELECT 1 FROM information_schema.COLUMNS
+				WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'uploaded_reports' AND COLUMN_NAME = 'project_id'
+			")->num_rows > 0 && $this->db->query("
+				SELECT 1 FROM information_schema.TABLES
+				WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'impact_assessments'
+			")->num_rows > 0;
+		}
+		return $ready;
+	}
+
+	/*
+	| When the impact assessment is due: the date the project was completed
+	| (or, until then, its end date) plus its impact period, 3 years unless
+	| the project says otherwise.
+	|   state: not_due | due | unknown (no date to count from yet)
+	*/
+	private function impact_due($project){
+
+		$years = max(1, (int)($project['impact_years'] ?? 3));
+		$from = !empty($project['completed_at']) ? $project['completed_at'] : (!empty($project['end_date']) ? $project['end_date'] : null);
+
+		if(!$from){
+			return array('date' => null, 'display' => '', 'years' => $years, 'state' => 'unknown',
+				'label' => 'Due '.$years.' year'.($years == 1 ? '' : 's').' after the project is completed',
+				'from' => null);
+		}
+
+		$due = date('Y-m-d', strtotime($from.' +'.$years.' years'));
+		$state = $due <= date('Y-m-d') ? 'due' : 'not_due';
+
+		return array(
+			'date' => $due,
+			'display' => date('F j, Y', strtotime($due)),
+			'years' => $years,
+			'state' => $state,
+			'label' => $state === 'due' ? 'Due for Assessment' : 'Not Yet Due',
+			'from' => !empty($project['completed_at']) ? 'completion' : 'end_date'
 		);
 	}
 
@@ -346,6 +407,11 @@ trait ProjectActions {
 
 		$set[] = "faculty_id = ".($faculty_id ?: 'NULL');
 
+		// How many years after completion the impact is assessed (3 unless changed)
+		if($this->links_ready() && isset($_POST['impact_years'])){
+			$set[] = "impact_years = ".max(1, min(10, (int)$_POST['impact_years']));
+		}
+
 		if($id){
 			$ok = $this->db->query("UPDATE projects SET ".implode(', ', $set)." WHERE id = $id");
 			return $ok ? 1 : $this->db->error;
@@ -368,8 +434,11 @@ trait ProjectActions {
 			return "You can only delete your own projects.";
 		}
 
-		// Activities stay, they simply stop belonging to a project
+		// Activities and reports stay, they simply stop belonging to a project
 		$this->db->query("UPDATE activities SET project_id = NULL WHERE project_id = $id");
+		if($this->links_ready()){
+			$this->db->query("UPDATE uploaded_reports SET project_id = NULL WHERE project_id = $id");
+		}
 
 		$tables = array('designations');
 
@@ -408,6 +477,11 @@ trait ProjectActions {
 		$stages = array();
 
 		foreach($this->doc_types() as $key => $type){
+
+			// The impact assessment has its own stage at the end
+			if(($type['group'] ?? 'pre') !== 'pre'){
+				continue;
+			}
 
 			$row = $this->db->query("
 				SELECT status FROM {$type['table']}
@@ -485,20 +559,80 @@ trait ProjectActions {
 			'state' => $images ? 'done' : 'waiting'
 		);
 
-		// Reports belong to the coordinator rather than the project for now;
-		// Phase 4 links them to the project directly.
+		// The pre-activity steps in their working order (Designation before Conduct Preparation)
+		$ordered = array();
+		foreach($this->lifecycle_stages() as $step){
+			if(isset($stages[$step['key']])){
+				$ordered[$step['key']] = $stages[$step['key']];
+			}
+		}
+		$stages = $ordered + $stages;
+
+		if(!$this->links_ready()){
+			foreach(array('reports' => 'Terminal / Progress Report', 'impact' => 'Impact Assessment') as $key => $label){
+				$stages[$key] = array('key' => $key, 'label' => $label, 'group' => 'post', 'status' => null,
+					'status_label' => 'After the database update', 'state' => 'waiting');
+			}
+			return array_values($stages);
+		}
+
+		// Reports: done once the Terminal Report is approved
+		$reports = $this->db->query("
+			SELECT COUNT(*) AS total,
+				SUM(status = 'Approved') AS approved,
+				SUM(report_type = 'Terminal Report' AND status = 'Approved') AS terminal,
+				SUM(status IN ('Revision', 'Rejected')) AS returned
+			FROM uploaded_reports WHERE project_id = $id
+		")->fetch_assoc();
+
+		$total = (int)$reports['total'];
+
+		if((int)$reports['terminal'] > 0){
+			$state = 'done';
+			$label = 'Terminal Report approved';
+		}elseif($total === 0){
+			$state = 'waiting';
+			$label = 'No report yet';
+		}elseif((int)$reports['returned'] > 0 && (int)$reports['approved'] === 0){
+			$state = 'attention';
+			$label = 'Report sent back';
+		}else{
+			$state = 'current';
+			$label = (int)$reports['approved'].' of '.$total.' report'.($total == 1 ? '' : 's').' approved';
+		}
+
 		$stages['reports'] = array(
-			'key' => 'reports', 'label' => 'Terminal / Progress Report', 'group' => 'post',
-			'status' => null,
-			'status_label' => 'Coming in the next update',
-			'state' => 'waiting'
+			'key' => 'reports', 'label' => 'Progress / Terminal Report', 'group' => 'post',
+			'status' => null, 'status_label' => $label, 'state' => $state
 		);
+
+		// Impact assessment: its own record once written, otherwise when it is due
+		if(!isset($project['impact_years'])){
+			$project = $this->db->query("SELECT * FROM projects WHERE id = $id")->fetch_assoc() ?: $project;
+		}
+
+		$impact = $this->db->query("SELECT status FROM impact_assessments WHERE project_id = $id ORDER BY id DESC LIMIT 1")->fetch_assoc();
+		$due = $this->impact_due($project);
+
+		if($impact){
+			$status = $impact['status'];
+			$state = $status === 'approved' ? 'done'
+				: ($status === 'revision' || $status === 'rejected' ? 'attention' : 'current');
+			$label = $this->status_label($status);
+		}elseif($due['state'] === 'due'){
+			$state = 'current';
+			$label = 'Due for assessment';
+		}elseif($due['state'] === 'not_due'){
+			$state = 'waiting';
+			$label = 'Due '.date('M Y', strtotime($due['date']));
+		}else{
+			$state = 'waiting';
+			$label = 'Not yet due';
+		}
 
 		$stages['impact'] = array(
 			'key' => 'impact', 'label' => 'Impact Assessment', 'group' => 'post',
-			'status' => null,
-			'status_label' => 'Coming in the next update',
-			'state' => 'waiting'
+			'status' => $impact ? $impact['status'] : null, 'status_label' => $label, 'state' => $state
 		);
 
 		return array_values($stages);
@@ -539,17 +673,30 @@ trait ProjectActions {
 			$designations[] = $row;
 		}
 
-		$activities = array();
-		$qry = $this->db->query("
-			SELECT id, activity_name, activity_date, venue, status
-			FROM activities WHERE project_id = $id ORDER BY activity_date
-		");
-		while($row = $qry->fetch_assoc()){
-			$row['date_display'] = date('M d, Y', strtotime($row['activity_date']));
-			$activities[] = $row;
-		}
-
+		$activities = $this->project_activities($id);
+		$reports = $this->links_ready() ? $this->project_reports($id) : array();
 		$progress = $this->project_progress($id);
+
+		// The numbers at the top of the project: each stage at a glance
+		$evaluations = 0;
+		$photos = 0;
+		foreach($activities as $activity){
+			$evaluations += $activity['evaluations'];
+			$photos += count($activity['images']);
+		}
+		$approved_reports = count(array_filter($reports, function($r){ return $r['status'] === 'Approved'; }));
+		$due = $this->links_ready() ? $this->impact_due($project) : null;
+		$impact = $documents['impact'][0] ?? null;
+
+		$summary = array(
+			'pre' => array('done' => $progress['done'], 'total' => $progress['total']),
+			'activities' => array('total' => count($activities),
+				'approved' => count(array_filter($activities, function($a){ return $a['status'] === 'approved'; }))),
+			'evaluations' => $evaluations,
+			'photos' => $photos,
+			'reports' => array('total' => count($reports), 'approved' => $approved_reports),
+			'impact' => $impact ? $this->status_label($impact['status']) : ($due ? $due['label'] : '')
+		);
 
 		return json_encode(array(
 			'project' => array(
@@ -567,15 +714,138 @@ trait ProjectActions {
 				'academic_year' => (string)$project['academic_year'],
 				'semester' => (string)$project['semester'],
 				'status' => $project['lifecycle_status'],
-				'status_label' => $this->lifecycle_label($project['lifecycle_status'])
+				'status_label' => $this->lifecycle_label($project['lifecycle_status']),
+				'impact_years' => (int)($project['impact_years'] ?? 3),
+				'completed_at' => $project['completed_at'] ?? null
 			),
 			'lifecycle' => $this->lifecycle($project),
 			'progress' => $progress,
+			'summary' => $summary,
 			'documents' => $documents,
 			'designations' => $designations,
 			'activities' => $activities,
+			'reports' => $reports,
+			'impact_due' => $due,
+			'suggestion' => $this->is_admin() ? $this->stage_suggestion($project) : null,
+			'links_ready' => $this->links_ready(),
 			'is_admin' => $this->is_admin()
 		));
+	}
+
+	/*
+	| A project's activities, with what the Conducting tab shows for each:
+	| its time, how many evaluations came in and its photos.
+	|   phase (approved ones): upcoming | today | conducted
+	*/
+	private function project_activities($project_id){
+
+		$project_id = (int)$project_id;
+		$times = $this->links_ready() ? ", a.start_time, a.end_time" : ", NULL AS start_time, NULL AS end_time";
+
+		$qry = $this->db->query("
+			SELECT a.id, a.faculty_id, a.activity_name, a.activity_date, a.venue, a.status, a.revision_note $times,
+				(SELECT COUNT(DISTINCT ea.evaluation_id) FROM evaluation_answers ea WHERE ea.activity_id = a.id) AS evaluations
+			FROM activities a
+			WHERE a.project_id = $project_id
+			ORDER BY a.activity_date, a.id
+		");
+
+		$rows = array();
+		$today = date('Y-m-d');
+		$user = $this->is_admin() ? 0 : (int)($_SESSION['login_id'] ?? 0);
+
+		while($row = $qry->fetch_assoc()){
+			$row['id'] = (int)$row['id'];
+			// Its coordinator adds the documentation photos once it is approved
+			$row['can_add_photos'] = $user && (int)$row['faculty_id'] === $user && $row['status'] === 'approved';
+			unset($row['faculty_id']);
+			$row['ref'] = sprintf('ACT-%04d', $row['id']);
+			$row['date_display'] = date('M d, Y', strtotime($row['activity_date']));
+			$row['time_display'] = $this->time_range($row['start_time'], $row['end_time']);
+			$row['status_label'] = $this->activity_status_label($row['status']);
+			$row['evaluations'] = (int)$row['evaluations'];
+			$row['phase'] = $row['status'] !== 'approved' ? ''
+				: ($row['activity_date'] < $today ? 'conducted' : ($row['activity_date'] === $today ? 'today' : 'upcoming'));
+			$rows[] = $row;
+		}
+
+		$images = $this->activity_image_rows(array_map(function($row){ return $row['id']; }, $rows));
+
+		foreach($rows as $i => $row){
+			$rows[$i]['images'] = $images[$row['id']] ?? array();
+		}
+
+		return $rows;
+	}
+
+	// "8:00 AM – 12:00 PM", "From 8:00 AM", or "All day"
+	private function time_range($start, $end){
+		$fmt = function($time){ return date('g:i A', strtotime($time)); };
+		if($start && $end){
+			return $fmt($start).' – '.$fmt($end);
+		}
+		if($start){
+			return 'From '.$fmt($start);
+		}
+		return 'All day';
+	}
+
+	// A project's Progress and Terminal Reports, newest first
+	private function project_reports($project_id){
+
+		$qry = $this->db->query("
+			SELECT r.*, CONCAT(f.firstname, ' ', f.lastname) AS uploader
+			FROM uploaded_reports r
+			LEFT JOIN faculty_list f ON f.id = r.uploaded_by
+			WHERE r.project_id = ".(int)$project_id."
+			ORDER BY r.uploaded_at DESC, r.id DESC
+		");
+
+		$rows = array();
+
+		while($row = $qry->fetch_assoc()){
+			$rows[] = $this->report_row($row);
+		}
+
+		return $rows;
+	}
+
+	/*
+	| What the admin is likely to do next with a project's stage, for the
+	| stages that are set by hand: completing it once the Terminal Report is
+	| approved, monitoring impact once the assessment is due, closing it once
+	| the impact assessment is approved. Never applied by itself.
+	*/
+	private function stage_suggestion($project){
+
+		if(!$this->links_ready()){
+			return null;
+		}
+
+		$id = (int)$project['id'];
+		$status = $project['lifecycle_status'];
+
+		if(!in_array($status, array('completed', 'impact_monitoring', 'closed'))){
+			$terminal = (int)$this->db->query("
+				SELECT COUNT(*) AS c FROM uploaded_reports
+				WHERE project_id = $id AND report_type = 'Terminal Report' AND status = 'Approved'
+			")->fetch_assoc()['c'];
+			return $terminal ? array('status' => 'completed', 'label' => 'Completed',
+				'reason' => 'The Terminal Report is approved.') : null;
+		}
+
+		$impact = $this->db->query("SELECT status FROM impact_assessments WHERE project_id = $id ORDER BY id DESC LIMIT 1")->fetch_assoc();
+
+		if($status === 'completed' && ($impact || $this->impact_due($project)['state'] === 'due')){
+			return array('status' => 'impact_monitoring', 'label' => 'Impact Monitoring',
+				'reason' => $impact ? 'The impact assessment has been started.' : 'The impact assessment is now due.');
+		}
+
+		if($status === 'impact_monitoring' && $impact && $impact['status'] === 'approved'){
+			return array('status' => 'closed', 'label' => 'Closed', 'reason' => 'The impact assessment is approved.');
+		}
+
+		return null;
 	}
 
 	/* =====================================================================
@@ -874,11 +1144,21 @@ trait ProjectActions {
 		$activities = $this->db->query("
 			SELECT COUNT(*) AS total,
 				SUM(status = 'approved') AS approved,
-				SUM(status = 'approved' AND activity_date < CURDATE()) AS past
+				SUM(status = 'approved' AND activity_date < CURDATE()) AS past,
+				SUM(status = 'approved' AND activity_date = CURDATE()) AS today
 			FROM activities WHERE project_id = $project_id
 		")->fetch_assoc();
 
-		if((int)$activities['past'] > 0){
+		// After the activities: a report that was not turned down means post-activity
+		$reports = $this->links_ready() ? (int)$this->db->query("
+			SELECT COUNT(*) AS c FROM uploaded_reports WHERE project_id = $project_id AND status <> 'Rejected'
+		")->fetch_assoc()['c'] : 0;
+
+		if((int)$activities['past'] > 0 && $reports > 0){
+			$status = 'post_activity';
+		}elseif((int)$activities['today'] > 0){
+			$status = 'ongoing';
+		}elseif((int)$activities['past'] > 0){
 			$status = 'conducted';
 		}elseif((int)$activities['approved'] > 0){
 			$status = 'ready_for_conduct';
@@ -911,9 +1191,60 @@ trait ProjectActions {
 			return "That stage is not valid for this project.";
 		}
 
-		$this->db->query("UPDATE projects SET lifecycle_status = '$status' WHERE id = $id");
+		// The day it was completed is when the impact assessment period starts
+		$completed = '';
+		if($this->links_ready()){
+			$completed = in_array($status, array('completed', 'impact_monitoring', 'closed'))
+				? ", completed_at = COALESCE(completed_at, CURDATE())"
+				: ", completed_at = NULL";
+		}
+
+		$this->db->query("UPDATE projects SET lifecycle_status = '$status' $completed WHERE id = $id");
+
+		$this->audit_project('project_stage_set', $id, $this->lifecycle_label($status));
 
 		return 1;
+	}
+
+	// The change history; does nothing before the questionnaire update made the table
+	private function audit_project($action, $project_id, $details = ''){
+		if(method_exists($this, 'audit')){
+			$this->audit($action, 'project', $project_id, $details);
+		}
+	}
+
+	/*
+	| Projects for a "Project" choice (activity requests, reports, linking):
+	| a coordinator's own projects, or every project for the admin.
+	*/
+	function project_options(){
+
+		$user = (int)($_SESSION['login_id'] ?? 0);
+		$where = $this->is_admin() ? "1" : "(p.faculty_id = $user OR p.created_by = $user)";
+
+		$qry = $this->db->query("
+			SELECT p.id, p.title, p.academic_year, p.semester, p.lifecycle_status,
+				CONCAT(f.firstname, ' ', f.lastname) AS coordinator
+			FROM projects p
+			LEFT JOIN faculty_list f ON f.id = p.faculty_id
+			WHERE $where
+			ORDER BY p.created_at DESC, p.id DESC
+		");
+
+		$rows = array();
+
+		while($row = $qry->fetch_assoc()){
+			$rows[] = array(
+				'id' => (int)$row['id'],
+				'ref' => sprintf('PRJ-%04d', $row['id']),
+				'title' => $row['title'],
+				'term' => trim($row['academic_year'].' '.$row['semester']),
+				'coordinator' => $row['coordinator'] ?: 'Not assigned',
+				'stage' => $this->lifecycle_label($row['lifecycle_status'])
+			);
+		}
+
+		return json_encode($rows);
 	}
 
 	// Coordinators the admin can assign a project to

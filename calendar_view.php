@@ -285,7 +285,8 @@ function show_event_details(event){
                   'Another activity is booked at this venue on the same day.</div>'
                 : '') +
             '<p><b>Status:</b> <span class="detail-status ' + calendar_escape(p.status_key) + '">' + calendar_escape(p.status) + '</span></p>' +
-            '<p><b>Date:</b> ' + calendar_escape(date) + '</p>' +
+            '<p><b>Project:</b> ' + calendar_escape(p.project || "Not linked to a project yet") + '</p>' +
+            '<p><b>Date:</b> ' + calendar_escape(date) + (p.time ? ' · ' + calendar_escape(p.time) : '') + '</p>' +
             '<p><b>Venue:</b> ' + calendar_escape(p.venue || "No venue") + '</p>' +
             '<p><b>Coordinator:</b> ' + calendar_escape(p.coordinator) + '</p>' +
             '<p><b>Purpose:</b> ' + calendar_escape(p.purpose || "No purpose given") + '</p>' +

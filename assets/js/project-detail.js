@@ -134,8 +134,41 @@
                 { name: 'personnel_assigned', label: 'Personnel assigned', type: 'check' },
                 { name: 'materials_prepared', label: 'Materials prepared', type: 'check' }
             ]
+        },
+        // The last stage, written years after the project and reviewed like the others
+        impact: {
+            label: 'Impact Assessment',
+            icon: 'fa-seedling',
+            post: true,
+            blurb: 'How the project changed things for its beneficiaries, some years after it ended.',
+            fields: [
+                { name: 'title', label: 'Assessment Title', type: 'text', required: true, key: true },
+                { name: 'period_start', label: 'Period Assessed: From', type: 'date', half: true, key: true },
+                { name: 'period_end', label: 'Period Assessed: To', type: 'date', half: true, key: true },
+                { name: 'assessment_date', label: 'Date of Assessment', type: 'date', half: true },
+                { name: 'findings', label: 'Findings', type: 'textarea' },
+                { name: 'outcomes', label: 'Outcomes', type: 'textarea', hint: 'What the project achieved in the long run.' },
+                { name: 'beneficiary_impact', label: 'Impact on the Beneficiaries', type: 'textarea' },
+                { name: 'sustainability', label: 'Sustainability', type: 'textarea', hint: 'Whether the benefits are still going, and why.' },
+                { name: 'recommendations', label: 'Recommendations', type: 'textarea' }
+            ]
         }
     };
+
+    // The project stages, in order (the same names as on the Projects page)
+    var STAGES = [
+        ['draft', 'Draft'], ['pre_activity', 'Pre-Activity'], ['for_approval', 'For Approval'],
+        ['ready_for_conduct', 'Ready for Conduct'], ['ongoing', 'Ongoing'], ['conducted', 'Conducted'],
+        ['post_activity', 'Post-Activity'], ['completed', 'Completed'], ['impact_monitoring', 'Impact Monitoring'],
+        ['closed', 'Closed']
+    ];
+
+    // Report statuses as the page's status colours know them
+    var REPORT_CLASS = { Pending: 'pending', Approved: 'approved', Revision: 'revision', Rejected: 'rejected' };
+
+    function plural(count, word, words){
+        return count + ' ' + (count === 1 ? word : (words || word + 's'));
+    }
 
     // Designation is a list of people, so it has its own small form
     var DESIGNATION_FIELDS = [
@@ -182,15 +215,139 @@
         var p = data.project;
 
         $('#pj-title').text(p.title);
-        $('#pj-ref').text(p.ref);
+        $('#pj-ref').text('Project ID: ' + p.ref);
         $('#pj-coordinator').text(p.coordinator);
+        $('#pj-head-meta').text([p.category, p.academic_year, p.semester].filter(Boolean).join(' • '));
+        $('#pj-head-stage').attr('class', 'pj-head-stage pj-status ' + p.status).text(p.status_label);
 
         render_timeline();
+        render_summary();
         render_overview();
+        render_stage();
         render_pre();
         render_activities();
+        render_post();
         render_files();
     }
+
+    /* Each part of the project at a glance. A card opens the tab it is about. */
+    function render_summary(){
+
+        var s = data.summary;
+        var due = data.impact_due;
+        var later = 'After the database update';
+
+        var cards = [
+            { tab: 'pre', icon: 'fa-clipboard-check', label: 'Pre-Activity', value: s.pre.done + ' / ' + s.pre.total, note: 'steps approved' },
+            { tab: 'conducting', icon: 'fa-calendar-check', label: 'Activities', value: s.activities.total, note: s.activities.approved + ' approved' },
+            { tab: 'conducting', icon: 'fa-star', label: 'Evaluation', value: s.evaluations, note: s.evaluations === 1 ? 'response' : 'responses' },
+            { tab: 'conducting', icon: 'fa-images', label: 'Documentation', value: s.photos, note: s.photos === 1 ? 'photo' : 'photos' },
+            data.links_ready
+                ? { tab: 'post', icon: 'fa-file-contract', label: 'Reports', value: s.reports.approved + ' / ' + s.reports.total, note: 'approved' }
+                : { tab: 'post', icon: 'fa-file-contract', label: 'Reports', value: '–', note: later },
+            data.links_ready
+                ? { tab: 'post', icon: 'fa-seedling', label: 'Impact Assessment', value: s.impact, small: true,
+                    note: due && due.date ? 'Due ' + due.display : (due ? due.label : '') }
+                : { tab: 'post', icon: 'fa-seedling', label: 'Impact Assessment', value: '–', note: later }
+        ];
+
+        $('#pj-summary').html($.map(cards, function(card){
+            return '<button type="button" class="pj-sum" data-open-tab="' + card.tab + '">' +
+                       '<span class="pj-sum-icon"><i class="fas ' + card.icon + '"></i></span>' +
+                       '<span class="pj-sum-text">' +
+                           '<span class="pj-sum-label">' + esc(card.label) + '</span>' +
+                           '<span class="pj-sum-value' + (card.small ? ' small' : '') + '">' + esc(card.value) + '</span>' +
+                           '<span class="pj-sum-note">' + esc(card.note) + '</span>' +
+                       '</span>' +
+                   '</button>';
+        }).join(''));
+    }
+
+    $(document).on('click', '[data-open-tab]', function(){
+        $('.pj-tab[data-panel="' + $(this).data('open-tab') + '"]').click();
+        var tabs = document.querySelector('.pj-tabs');
+        if(tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    /* Where the project is among all its stages, and (for the Extension
+       Office) a way to move it, with a suggestion when the records say so. */
+    function render_stage(){
+
+        var current = data.project.status;
+        var index = -1;
+
+        $.each(STAGES, function(i, stage){
+            if(stage[0] === current) index = i;
+        });
+
+        var path = $.map(STAGES, function(stage, i){
+            return '<li class="pj-path-step' + (i < index ? ' past' : (i === index ? ' now' : '')) + '">' +
+                       '<span class="pj-path-dot">' + (i < index ? '<i class="fas fa-check"></i>' : (i + 1)) + '</span>' +
+                       '<span class="pj-path-label">' + esc(stage[1]) + '</span>' +
+                   '</li>';
+        }).join('');
+
+        var html = '<h3 class="pj-section-title"><i class="fas fa-flag"></i> Project Stage</h3>' +
+                   '<p class="pj-section-sub">The stage moves forward by itself as documents, activities and reports come in, up to Post-Activity. ' +
+                   'The Extension Office marks a project Completed, Impact Monitoring and Closed.</p>' +
+                   '<ol class="pj-path">' + path + '</ol>';
+
+        if(isAdmin){
+
+            if(data.suggestion){
+                html += '<div class="pj-suggest"><i class="fas fa-lightbulb"></i>' +
+                        '<div>Suggested next stage: <b>' + esc(data.suggestion.label) + '</b>. ' + esc(data.suggestion.reason) + '</div>' +
+                        '<button type="button" class="pj-mini go" data-set-stage="' + esc(data.suggestion.status) + '">' +
+                        'Mark as ' + esc(data.suggestion.label) + '</button></div>';
+            }
+
+            html += '<div class="pj-stage-set">' +
+                        '<label for="pj-stage-select">Change the stage by hand</label>' +
+                        '<select id="pj-stage-select" class="form-control">' +
+                            $.map(STAGES, function(stage){
+                                return '<option value="' + stage[0] + '"' + (stage[0] === current ? ' selected' : '') + '>' + esc(stage[1]) + '</option>';
+                            }).join('') +
+                        '</select>' +
+                        '<button type="button" class="pj-mini go" id="pj-stage-save">Save Stage</button>' +
+                    '</div>';
+        }
+
+        $('#pj-stage').html(html);
+    }
+
+    function set_stage(status){
+
+        var label = STAGES.filter(function(stage){ return stage[0] === status; })[0];
+
+        Swal.fire({
+            title: 'Change the stage to ' + (label ? label[1] : status) + '?',
+            text: status === 'completed'
+                ? 'The completion date is recorded today, and the Impact Assessment becomes due ' +
+                  plural(data.project.impact_years, 'year') + ' from it.'
+                : '',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Change Stage',
+            confirmButtonColor: '#1d5b42',
+            cancelButtonColor: '#6c757d'
+        }).then(function(result){
+            if(!result.isConfirmed) return;
+            $.post('ajax.php?action=project_set_status', { id: projectId, status: status }).done(function(resp){
+                if($.trim(resp) === '1'){ alert_toast('Stage changed.', 'success'); load(); }
+                else Swal.fire({ icon: 'warning', title: 'Not changed', text: $.trim(resp) });
+            });
+        });
+    }
+
+    $(document).on('click', '[data-set-stage]', function(){
+        set_stage($(this).data('set-stage'));
+    });
+
+    $(document).on('click', '#pj-stage-save', function(){
+        var status = $('#pj-stage-select').val();
+        if(status === data.project.status) return;
+        set_stage(status);
+    });
 
     function render_timeline(){
 
@@ -243,6 +400,13 @@
             ['Activities', data.activities.length],
             ['Pre-Activity Progress', data.progress.percent + '%']
         ];
+
+        if(data.links_ready){
+            facts.push(['Impact Assessment', plural(p.impact_years, 'year') + ' after completion']);
+            if(p.completed_at){
+                facts.push(['Completed', date_display(p.completed_at)]);
+            }
+        }
 
         var html = '';
 
@@ -642,12 +806,23 @@
         render_pre();
     });
 
+    /* CONDUCTING: the project's activities, each with its evaluations and
+       photos. Coordinators request activities from here; the Activities page
+       opens with this project already chosen. */
     function render_activities(){
+
+        $('#pj-activity-actions').html(
+            !isAdmin && data.links_ready
+                ? '<a class="pj-btn pj-btn-green" href="index.php?page=activities&new=1&project=' + projectId + '">' +
+                  '<i class="fas fa-calendar-plus"></i> Request an Activity</a>'
+                : ''
+        );
 
         if(!data.activities.length){
             $('#pj-activities').html(
                 '<div class="pj-empty"><i class="fas fa-calendar-plus"></i>' +
                 'No activity belongs to this project yet.' +
+                (isAdmin ? ' The project\'s coordinator requests activities from the Activities page.' : '') +
                 '<div class="mt-2"><a href="index.php?page=activities">Open the Activities page</a></div></div>'
             );
             return;
@@ -656,55 +831,345 @@
         var html = '';
 
         $.each(data.activities, function(i, activity){
-            html += '<div class="pj-doc">' +
-                        '<div class="pj-doc-main">' +
+
+            // An approved activity is also conducted once its day has passed
+            var badge = activity.phase === 'conducted'
+                ? '<span class="pj-status conducted"><i class="fas fa-check"></i> Conducted</span>'
+                : activity.phase === 'today'
+                    ? '<span class="pj-status ongoing">Today</span>'
+                    : '<span class="pj-status ' + esc(activity.status) + '">' + esc(activity.status_label) + '</span>';
+
+            var thumbs = '';
+            $.each(activity.images.slice(0, 6), function(j, image){
+                thumbs += '<span class="pj-thumb">' +
+                              '<a href="' + esc(image.url) + '" target="_blank" rel="noopener" title="Open photo ' + (j + 1) + '">' +
+                              '<img src="' + esc(image.url) + '" alt="Photo ' + (j + 1) + ' of ' + esc(activity.activity_name) + '"></a>' +
+                              (activity.can_add_photos
+                                  ? '<button type="button" class="pj-thumb-remove" data-remove-photo="' + image.id + '" title="Remove this photo" aria-label="Remove photo ' + (j + 1) + '">&times;</button>'
+                                  : '') +
+                          '</span>';
+            });
+            if(activity.images.length > 6){
+                thumbs += '<span class="pj-thumb-more">+' + (activity.images.length - 6) + '</span>';
+            }
+
+            var actions = '';
+            if(activity.status === 'approved'){
+                actions += '<a class="pj-mini" target="_blank" href="faculty/generate_qr.php?id=' + activity.id + '">' +
+                           '<i class="fas fa-qrcode"></i> QR Code</a>';
+            }
+            if(activity.can_add_photos){
+                actions += '<button type="button" class="pj-mini go" data-add-photos="' + activity.id + '">' +
+                           '<i class="fas fa-camera"></i> Add Photos</button>';
+            }
+            if(isAdmin && activity.evaluations > 0){
+                actions += '<a class="pj-mini" href="index.php?page=evaluation_results&activity=' + activity.id + '">' +
+                           '<i class="fas fa-chart-bar"></i> Results</a>';
+            }
+
+            html += '<div class="pj-activity">' +
+                        '<div class="pj-activity-main">' +
                             '<div class="pj-doc-title">' + esc(activity.activity_name) + '</div>' +
-                            '<div class="pj-doc-meta">' + esc(activity.date_display) +
-                            (activity.venue ? ' &middot; ' + esc(activity.venue) : '') + '</div>' +
+                            '<div class="pj-doc-meta">' +
+                                '<i class="far fa-calendar"></i> ' + esc(activity.date_display) + ' &middot; ' + esc(activity.time_display) +
+                                (activity.venue ? ' &middot; <i class="fas fa-map-marker-alt"></i> ' + esc(activity.venue) : '') +
+                                ' &middot; ' + esc(activity.ref) +
+                            '</div>' +
+                            (activity.revision_note
+                                ? '<div class="pj-note"><b>Extension Office:</b> ' + nl2br(activity.revision_note) + '</div>'
+                                : '') +
+                            '<div class="pj-activity-stats">' +
+                                '<span class="pj-stat"><i class="fas fa-star"></i> ' + plural(activity.evaluations, 'evaluation') + '</span>' +
+                                '<span class="pj-stat"><i class="fas fa-images"></i> ' + plural(activity.images.length, 'photo') + '</span>' +
+                            '</div>' +
+                            (thumbs ? '<div class="pj-thumbs">' + thumbs + '</div>' : '') +
                         '</div>' +
-                        '<span class="pj-status ' + esc(activity.status) + '">' +
-                        esc(activity.status.charAt(0).toUpperCase() + activity.status.slice(1)) + '</span>' +
+                        '<div class="pj-activity-side">' + badge +
+                            (actions ? '<div class="pj-doc-actions">' + actions + '</div>' : '') +
+                        '</div>' +
                     '</div>';
         });
 
         $('#pj-activities').html(html);
     }
 
+    /* Documentation photos of an approved activity, added by its coordinator
+       after the activity (editing the activity itself is closed by then). */
+    var photoInput = $('<input type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>').appendTo('body');
+    var photoActivity = 0;
+
+    $(document).on('click', '[data-add-photos]', function(){
+        photoActivity = $(this).data('add-photos');
+        photoInput.val('').trigger('click');
+    });
+
+    photoInput.on('change', function(){
+
+        if(!this.files.length) return;
+
+        var form = new FormData();
+        form.append('id', photoActivity);
+        $.each(this.files, function(i, file){ form.append('images[]', file); });
+
+        Swal.fire({ title: 'Uploading photos...', allowOutsideClick: false, didOpen: function(){ Swal.showLoading(); } });
+
+        $.ajax({ url: 'ajax.php?action=activity_add_photos', method: 'POST', data: form, processData: false, contentType: false })
+            .done(function(resp){
+                if($.trim(resp) === '1'){
+                    Swal.fire({ icon: 'success', title: 'Photos added', timer: 1400, showConfirmButton: false });
+                    load();
+                }else{
+                    Swal.fire({ icon: 'error', title: 'Not added', text: resp });
+                }
+            })
+            .fail(function(xhr){
+                Swal.fire({ icon: 'error', title: 'Not added', text: (xhr.responseJSON && xhr.responseJSON.error) || 'Please try again.' });
+            });
+    });
+
+    $(document).on('click', '[data-remove-photo]', function(e){
+
+        e.preventDefault();
+        var id = $(this).data('remove-photo');
+
+        Swal.fire({
+            title: 'Remove this photo?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Remove',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d'
+        }).then(function(result){
+            if(!result.isConfirmed) return;
+            $.post('ajax.php?action=activity_remove_photo', { image_id: id })
+                .done(function(resp){
+                    if($.trim(resp) === '1'){
+                        load();
+                    }else{
+                        Swal.fire({ icon: 'error', title: 'Not removed', text: resp });
+                    }
+                })
+                .fail(function(xhr){
+                    Swal.fire({ icon: 'error', title: 'Not removed', text: (xhr.responseJSON && xhr.responseJSON.error) || 'Please try again.' });
+                });
+        });
+    });
+
+    /* POST-ACTIVITY: the project's reports, and its Impact Assessment with
+       when it is due. */
+    function report_row(report){
+
+        var approved = report.status === 'Approved' && report.reviewed_at
+            ? '<div class="pj-doc-meta"><i class="fas fa-check-circle"></i> Approved ' + esc(report.reviewed_at) +
+              (report.reviewed_by ? ' by ' + esc(report.reviewed_by) : '') + '</div>'
+            : '';
+
+        return '<div class="pj-doc">' +
+                   '<div class="pj-doc-main">' +
+                       '<div class="pj-doc-title">' + esc(report.title) + '</div>' +
+                       '<div class="pj-doc-meta">' + esc(report.ref) + ' &middot; Submitted ' + esc(report.uploaded_display) +
+                       (report.period ? ' &middot; Period: ' + esc(report.period) : '') + ' &middot; ' + esc(report.coordinator) + '</div>' +
+                       (report.description ? '<div class="pj-doc-meta">' + nl2br(report.description) + '</div>' : '') +
+                       (report.remarks ? '<div class="pj-note"><b>Extension Office:</b> ' + nl2br(report.remarks) + '</div>' : '') +
+                       approved +
+                   '</div>' +
+                   '<span class="pj-status ' + (REPORT_CLASS[report.status] || '') + '">' + esc(report.status_label) + '</span>' +
+                   '<div class="pj-doc-actions">' +
+                       '<a class="pj-mini" target="_blank" href="' + esc(report.file_url) + '"><i class="fas fa-eye"></i> View</a>' +
+                       (report.can_review && report.status !== 'Approved'
+                           ? '<button type="button" class="pj-mini go" data-review-report="' + report.id + '"><i class="fas fa-gavel"></i> Review</button>'
+                           : '') +
+                   '</div>' +
+               '</div>';
+    }
+
+    function render_post(){
+
+        if(!data.links_ready){
+            $('#pj-post').html('<div class="pj-empty"><i class="fas fa-database"></i>' +
+                'Reports and the Impact Assessment appear here once the latest database update is applied (System Update).</div>');
+            return;
+        }
+
+        var html = '<div class="pj-step-head">' +
+                       '<h3 class="pj-section-title"><i class="fas fa-file-contract"></i> Progress and Terminal Reports</h3>' +
+                       '<p class="pj-section-sub">Progress Reports while the project runs, and the Terminal Report at its end. ' +
+                       'Approving the Terminal Report completes this stage.</p>' +
+                       (!isAdmin
+                           ? '<a class="pj-btn pj-btn-green pj-step-add" href="index.php?page=result&new=1&project=' + projectId + '">' +
+                             '<i class="fas fa-cloud-upload-alt"></i> Upload a Report</a>'
+                           : '') +
+                   '</div>';
+
+        $.each([['Progress Report', 'fa-chart-line'], ['Terminal Report', 'fa-flag-checkered']], function(i, type){
+
+            var list = data.reports.filter(function(r){ return r.type === type[0]; });
+
+            html += '<h4 class="pj-sub-title"><i class="fas ' + type[1] + '"></i> ' + esc(type[0]) +
+                    (list.length ? ' <span class="pj-count">' + list.length + '</span>' : '') + '</h4>';
+
+            html += list.length
+                ? $.map(list, report_row).join('')
+                : '<div class="pj-empty pj-empty-small">No ' + esc(type[0].toLowerCase()) + ' yet.</div>';
+        });
+
+        // The Impact Assessment
+        var due = data.impact_due;
+        var impacts = data.documents.impact || [];
+
+        html += '<div class="pj-step-head mt-4">' +
+                    '<h3 class="pj-section-title"><i class="fas fa-seedling"></i> Impact Assessment</h3>' +
+                    '<p class="pj-section-sub">' + esc(DOCS.impact.blurb) + ' It is due ' +
+                    plural(data.project.impact_years, 'year') + ' after the project is completed.</p>' +
+                    (!impacts.length
+                        ? '<button type="button" class="pj-btn pj-btn-green pj-step-add" data-add="impact"><i class="fas fa-plus"></i> Start the Impact Assessment</button>'
+                        : '') +
+                '</div>';
+
+        if(due){
+            var from = due.from === 'completion' ? 'counted from the completion date'
+                     : due.from === 'end_date' ? 'counted from the project\'s end date until it is marked Completed'
+                     : 'set once the project is completed';
+            html += '<div class="pj-due ' + esc(due.state) + '">' +
+                        '<i class="fas ' + (due.state === 'due' ? 'fa-bell' : 'fa-hourglass-half') + '"></i>' +
+                        '<div><b>' + esc(impacts.length ? impacts[0].status_label : due.label) + '</b>' +
+                        (due.date ? ' &middot; Due ' + esc(due.display) : '') +
+                        '<small>The due date is ' + esc(from) + '.</small></div>' +
+                    '</div>';
+        }
+
+        $.each(impacts, function(i, doc){
+            html += doc_row('impact', doc);
+        });
+
+        $('#pj-post').html(html);
+    }
+
+    // The Extension Office's decision on a report: the same choices as for documents
+    $(document).on('click', '[data-review-report]', function(){
+
+        var id = $(this).data('review-report');
+
+        Swal.fire({
+            title: 'Review Report',
+            input: 'select',
+            inputOptions: { approved: 'Approve', revision: 'Needs Revision', rejected: 'Reject' },
+            inputPlaceholder: 'Choose a decision',
+            html: '<textarea id="pj-report-remarks" class="form-control mt-3" placeholder="Remarks for the coordinator (required for Needs Revision)"></textarea>',
+            showCancelButton: true,
+            confirmButtonText: 'Save decision',
+            confirmButtonColor: '#1d5b42',
+            cancelButtonColor: '#6c757d',
+            preConfirm: function(decision){
+                if(!decision){
+                    Swal.showValidationMessage('Please choose a decision.');
+                    return false;
+                }
+                var remarks = $('#pj-report-remarks').val();
+                if(decision === 'revision' && !$.trim(remarks)){
+                    Swal.showValidationMessage('Please write what needs to be changed.');
+                    return false;
+                }
+                return { decision: decision, remarks: remarks };
+            }
+        }).then(function(result){
+            if(!result.isConfirmed) return;
+            $.post('ajax.php?action=report_review', { id: id, decision: result.value.decision, remarks: result.value.remarks }, null, 'json')
+                .done(function(resp){
+                    if(resp.ok){ alert_toast('Decision saved.', 'success'); load(); }
+                    else Swal.fire({ icon: 'warning', title: 'Not saved', text: resp.error });
+                })
+                .fail(function(xhr){
+                    Swal.fire({ icon: 'error', title: 'Not saved', text: (xhr.responseJSON && xhr.responseJSON.error) || 'Please try again.' });
+                });
+        });
+    });
+
+    /* DOCUMENTS: every file in one place, grouped by stage. Nothing is copied:
+       each file still opens from the record it belongs to. */
     function render_files(){
 
-        var html = '';
+        function doc_file(type, doc, label){
+            return '<div class="pj-doc">' +
+                       '<div class="pj-doc-main">' +
+                           '<div class="pj-doc-title">' + esc(doc.title || label) + '</div>' +
+                           '<div class="pj-doc-meta">' + esc(label) + '</div>' +
+                       '</div>' +
+                       '<div class="pj-doc-actions">' +
+                           '<button type="button" class="pj-mini" data-view="' + type + '" data-id="' + doc.id + '"><i class="fas fa-eye"></i> View</button>' +
+                           '<a class="pj-mini" href="project_file.php?type=' + type + '&id=' + doc.id + '&download=1" title="Download"><i class="fas fa-download"></i></a>' +
+                       '</div>' +
+                   '</div>';
+        }
+
+        var pre = '';
+        var conducting = '';
+        var post = '';
 
         $.each(DOCS, function(type, config){
+            if(config.post) return;
             $.each(data.documents[type] || [], function(i, doc){
-                if(!doc.file_name) return;
-                html += '<div class="pj-doc">' +
-                            '<div class="pj-doc-main">' +
-                                '<div class="pj-doc-title">' + esc(doc.title || config.label) + '</div>' +
-                                '<div class="pj-doc-meta">' + config.label + '</div>' +
-                            '</div>' +
-                            '<div class="pj-doc-actions">' +
-                                '<button type="button" class="pj-mini" data-view="' + type + '" data-id="' + doc.id + '"><i class="fas fa-eye"></i> View</button>' +
-                                '<a class="pj-mini" href="project_file.php?type=' + type + '&id=' + doc.id + '&download=1"><i class="fas fa-download"></i></a>' +
-                            '</div>' +
-                        '</div>';
+                if(doc.file_name) pre += doc_file(type, doc, config.label);
             });
         });
 
         $.each(data.designations, function(i, person){
             if(!person.file_name) return;
-            html += '<div class="pj-doc">' +
+            pre += '<div class="pj-doc">' +
+                       '<div class="pj-doc-main">' +
+                           '<div class="pj-doc-title">' + esc(person.personnel_name) + '</div>' +
+                           '<div class="pj-doc-meta">Designation</div>' +
+                       '</div>' +
+                       '<div class="pj-doc-actions">' +
+                           '<button type="button" class="pj-mini" data-view-person="' + person.id + '"><i class="fas fa-eye"></i> View</button>' +
+                           '<a class="pj-mini" href="project_file.php?type=designation&id=' + person.id + '&download=1" title="Download"><i class="fas fa-download"></i></a>' +
+                       '</div>' +
+                   '</div>';
+        });
+
+        // Activity photos, one row per activity
+        $.each(data.activities, function(i, activity){
+            if(!activity.images.length) return;
+            conducting += '<div class="pj-doc">' +
+                              '<div class="pj-doc-main">' +
+                                  '<div class="pj-doc-title">Photos: ' + esc(activity.activity_name) + '</div>' +
+                                  '<div class="pj-doc-meta">Activity documentation &middot; ' + plural(activity.images.length, 'photo') +
+                                  ' &middot; ' + esc(activity.date_display) + '</div>' +
+                                  '<div class="pj-thumbs">' + $.map(activity.images, function(image, j){
+                                      return '<a href="' + esc(image.url) + '" target="_blank" rel="noopener" title="Open photo ' + (j + 1) + '">' +
+                                             '<img src="' + esc(image.url) + '" alt="Photo ' + (j + 1) + '"></a>';
+                                  }).join('') + '</div>' +
+                              '</div>' +
+                          '</div>';
+        });
+
+        $.each(data.reports || [], function(i, report){
+            post += '<div class="pj-doc">' +
                         '<div class="pj-doc-main">' +
-                            '<div class="pj-doc-title">' + esc(person.personnel_name) + '</div>' +
-                            '<div class="pj-doc-meta">Designation</div>' +
+                            '<div class="pj-doc-title">' + esc(report.title) + '</div>' +
+                            '<div class="pj-doc-meta">' + esc(report.type) + ' &middot; ' + esc(report.status_label) + '</div>' +
                         '</div>' +
                         '<div class="pj-doc-actions">' +
-                            '<button type="button" class="pj-mini" data-view-person="' + person.id + '"><i class="fas fa-eye"></i> View</button>' +
-                            '<a class="pj-mini" href="project_file.php?type=designation&id=' + person.id + '&download=1"><i class="fas fa-download"></i></a>' +
+                            '<a class="pj-mini" target="_blank" href="' + esc(report.file_url) + '"><i class="fas fa-eye"></i> View</a>' +
+                            '<a class="pj-mini" href="' + esc(report.file_url) + '&download=1" title="Download"><i class="fas fa-download"></i></a>' +
                         '</div>' +
                     '</div>';
         });
 
-        $('#pj-files').html(html || '<div class="pj-empty"><i class="fas fa-folder-open"></i>No file has been attached to this project yet.</div>');
+        $.each(data.documents.impact || [], function(i, doc){
+            if(doc.file_name) post += doc_file('impact', doc, 'Impact Assessment');
+        });
+
+        function group(title, icon, body, empty){
+            return '<h4 class="pj-sub-title"><i class="fas ' + icon + '"></i> ' + title + '</h4>' +
+                   (body || '<div class="pj-empty pj-empty-small">' + empty + '</div>');
+        }
+
+        $('#pj-files').html(
+            group('Pre-Activity', 'fa-clipboard-list', pre, 'No pre-activity file yet.') +
+            group('Conducting', 'fa-calendar-check', conducting, 'No activity photo yet.') +
+            group('Post-Activity', 'fa-flag-checkered', post, 'No report or impact assessment file yet.')
+        );
     }
 
     /* =================================================================
@@ -954,7 +1419,8 @@
 
     /* ---------------- the admin's review decision ---------------- */
 
-    $(document).on('click', '[data-review]', function(){
+    // Only the Review buttons; the form's own submit buttons carry data-review too
+    $(document).on('click', 'button[data-review]:not([type="submit"])', function(){
 
         var type = $(this).data('review');
         var id = $(this).data('id');
@@ -1068,6 +1534,12 @@
         $(this).addClass('active');
         $('.pj-panel').removeClass('active').filter('[data-panel="' + panel + '"]').addClass('active');
     });
+
+    // Opened at a tab, e.g. from the Reports page (&tab=post)
+    var startTab = new URLSearchParams(location.search).get('tab');
+    if(/^(overview|pre|conducting|post|documents)$/.test(startTab || '')){
+        $('.pj-tab[data-panel="' + startTab + '"]').click();
+    }
 
     load();
 

@@ -9,6 +9,13 @@ $units = array('G' => 1073741824, 'M' => 1048576, 'K' => 1024);
 $unit = strtoupper(substr($post_limit, -1));
 $max_send_bytes = (int)((float)$post_limit * (isset($units[$unit]) ? $units[$unit] : 1)) - 1048576;
 
+// Activities belong to a project once the database update that links them has run
+require_once 'questionnaire_lib.php';
+$links_ready = $conn->query("
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'activities' AND COLUMN_NAME = 'start_time'
+")->num_rows > 0;
+
 // For the Coordinator filter on the All Activities tab
 $coordinators = $conn->query("SELECT id, CONCAT(firstname,' ',lastname) AS name FROM faculty_list ORDER BY firstname, lastname");
 ?>
@@ -776,6 +783,12 @@ BUTTON
 
 <div class="container-fluid">
 
+<p class="at-page-purpose">
+    <i class="fas fa-info-circle"></i>
+    Manage and monitor activities across all extension projects. Every activity belongs to a project;
+    open the project to follow it from planning to its reports.
+</p>
+
 <!-- My / All Activities -->
 <ul class="nav activity-tabs mb-4">
     <li class="nav-item">
@@ -1108,6 +1121,20 @@ Create Activity
 </div>
 
 
+<?php if($links_ready): ?>
+<div class="form-group">
+<label for="activity_project">Project <span class="text-danger">*</span></label>
+<select name="project_id" id="activity_project" class="form-control" required>
+    <option value="">Choose the project this activity is part of</option>
+</select>
+<!-- Shown when you have no project yet -->
+<div id="no-project" class="alert alert-warning small mt-2 mb-0" style="display:none">
+    You have no project yet. Activities belong to a project, so
+    <a href="index.php?page=projects">create the project first</a>.
+</div>
+</div>
+<?php endif; ?>
+
 <div class="form-group">
 
 <label>Activity Name</label>
@@ -1155,6 +1182,19 @@ required>
 
 </div>
 
+<?php if($links_ready): ?>
+<div class="form-row">
+<div class="form-group col-6">
+<label for="activity_start">Start Time</label>
+<input type="time" name="start_time" id="activity_start" class="form-control">
+</div>
+<div class="form-group col-6">
+<label for="activity_end">End Time</label>
+<input type="time" name="end_time" id="activity_end" class="form-control">
+</div>
+</div>
+<?php endif; ?>
+
 <div class="form-group">
 
 <label>Venue</label>
@@ -1198,9 +1238,9 @@ required>
 
 </div>
 
-<link rel="stylesheet" href="assets/css/activity-table.css">
+<link rel="stylesheet" href="assets/css/activity-table.css?v=<?php echo @filemtime('assets/css/activity-table.css') ?: 1; ?>">
 
-<script src="assets/js/activity-table.js"></script>
+<script src="assets/js/activity-table.js?v=<?php echo @filemtime('assets/js/activity-table.js') ?: 1; ?>"></script>
 
 <script>
 
@@ -1278,6 +1318,35 @@ $("#activity_date, #venue").on("input change", function(){
     clearTimeout(conflictTimer);
     conflictTimer = setTimeout(check_conflict, 400);
 });
+
+// The projects an activity can belong to (your own). Opened from a project's
+// "Request an Activity" button (?new=1&project=ID), the form starts with it chosen.
+var projectsLoaded = $.Deferred();
+
+if($("#activity_project").length){
+    $.getJSON("ajax.php?action=project_options").done(function(projects){
+        var select = $("#activity_project");
+        $.each(projects, function(i, p){
+            select.append($("<option>").val(p.id).text(p.ref + " · " + p.title + (p.term ? " (" + p.term + ")" : "")));
+        });
+        $("#no-project").toggle(projects.length === 0);
+        projectsLoaded.resolve(projects);
+    });
+}else{
+    projectsLoaded.resolve([]);
+}
+
+(function(){
+    var params = new URLSearchParams(location.search);
+    if(params.get("new") === "1"){
+        projectsLoaded.done(function(){
+            if(params.get("project")){
+                $("#activity_project").val(params.get("project"));
+            }
+            $("#activity-modal").modal("show");
+        });
+    }
+})();
 
 // Move the modal to <body> so the page's cards can't stack it under the backdrop
 $("#activity-modal").appendTo("body");
@@ -1372,6 +1441,9 @@ function start_edit(row){
     $("#activity-form [name=description]").val(row.description);
     $("#activity_date").val(row.date);
     $("#venue").val(row.venue);
+    $("#activity_project").val(row.project_id ? String(row.project_id) : "");
+    $("#activity_start").val(row.start_time || "");
+    $("#activity_end").val(row.end_time || "");
 
     $("#form-title").html('<i class="fa fa-pen mr-2"></i> Edit Activity');
     $("#form-subtitle").text("Saving sends it back to the admin as Pending.");

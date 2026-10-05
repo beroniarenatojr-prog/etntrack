@@ -23,7 +23,7 @@
                     <h3>Extension Coordinators Activities</h3>
 
                     <p>
-                        Review, approve, or reject submitted extension activities.
+                        Manage and monitor activities across all extension projects. Review, approve or reject what coordinators submit.
                     </p>
                 </div>
 
@@ -157,6 +157,11 @@
                     <i class="fas fa-search"></i>
                     <input type="text" id="admin-search" placeholder="Search by activity or implementer...">
                 </div>
+
+                <select id="admin-project" class="form-control" aria-label="Project">
+                    <option value="">All Projects</option>
+                    <option value="none">Unassigned project</option>
+                </select>
 
                 <select id="admin-status" class="form-control">
                     <option value="">All Status</option>
@@ -555,7 +560,8 @@
     background:transparent;
 }
 
-#admin-status{
+#admin-status,
+#admin-project{
     flex:0 0 190px;
     height:44px;
     border-radius:12px;
@@ -680,9 +686,9 @@
 <!-- ==========================================
      JAVASCRIPT
 =========================================== -->
-<link rel="stylesheet" href="assets/css/activity-table.css">
+<link rel="stylesheet" href="assets/css/activity-table.css?v=<?php echo @filemtime('assets/css/activity-table.css') ?: 1; ?>">
 
-<script src="assets/js/activity-table.js"></script>
+<script src="assets/js/activity-table.js?v=<?php echo @filemtime('assets/js/activity-table.js') ?: 1; ?>"></script>
 
 <script>
 
@@ -697,14 +703,27 @@ $(document).ready(function(){
         search: "#admin-search",
         bulkBar: "#admin-bulk",
         filters: function(){
-            return { status: $("#admin-status").val() };
+            return { status: $("#admin-status").val(), project: $("#admin-project").val() };
         },
         onChange: refresh_summary,
         emptyText: "No activities submitted yet."
     });
 
-    $("#admin-status").change(function(){
+    $("#admin-status, #admin-project").change(function(){
         adminTable.reload();
+    });
+
+    // Every project, for the Project filter (opened from a project: ?project=ID)
+    $.getJSON("ajax.php?action=project_options").done(function(projects){
+        var select = $("#admin-project");
+        $.each(projects, function(i, p){
+            select.append($("<option>").val(p.id).text(p.ref + " · " + p.title));
+        });
+        var wanted = new URLSearchParams(location.search).get("project");
+        if(wanted){
+            select.val(wanted);
+            adminTable.reload();
+        }
     });
 
 });

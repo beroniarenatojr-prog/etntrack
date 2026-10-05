@@ -9,6 +9,12 @@ include 'db_connect.php';
 
 $is_admin = ($_SESSION['login_type'] ?? 0) == 1;
 
+// The impact assessment period can be set once the database update that adds it has run
+$impact_ready = $conn->query("
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'projects' AND COLUMN_NAME = 'impact_years'
+")->num_rows > 0;
+
 // Values for the filter dropdowns, taken from the projects that exist
 $years = array();
 $qry = $conn->query("SELECT DISTINCT academic_year FROM projects WHERE academic_year <> '' ORDER BY academic_year DESC");
@@ -46,9 +52,7 @@ $stages = array(
 
     <div>
         <h1>Extension Projects</h1>
-        <p><?php echo $is_admin
-            ? 'Every extension project, from the first assessment to the impact assessment.'
-            : 'Your extension projects and the documents that belong to them.'; ?></p>
+        <p>Manage complete extension projects from planning to impact assessment.</p>
     </div>
 
     <div class="pj-head-actions">
@@ -216,6 +220,19 @@ $stages = array(
                             <label for="pj-f-end">End Date</label>
                             <input type="date" name="end_date" id="pj-f-end" class="form-control">
                         </div>
+
+                        <?php if($impact_ready): ?>
+                        <div class="col-md-6 form-group">
+                            <label for="pj-f-impact">Impact Assessment Due</label>
+                            <select name="impact_years" id="pj-f-impact" class="form-control">
+                                <?php for($y = 1; $y <= 10; $y++): ?>
+                                <option value="<?php echo $y; ?>"<?php echo $y === 3 ? ' selected' : ''; ?>>
+                                    <?php echo $y.' year'.($y > 1 ? 's' : ''); ?> after the project is completed
+                                </option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+                        <?php endif; ?>
 
                     </div>
 
@@ -390,6 +407,7 @@ $(function(){
                 $('#pj-f-semester').val(p.semester);
                 $('#pj-f-start').val(p.start_date);
                 $('#pj-f-end').val(p.end_date);
+                $('#pj-f-impact').val(String(p.impact_years || 3));
                 $('#pj-f-beneficiaries').val(p.target_beneficiaries);
                 if(isAdmin){ $('#pj-f-faculty').val(p.faculty_id || ''); }
                 $('#pj-modal').modal('show');

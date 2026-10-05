@@ -507,11 +507,171 @@ font-size:13px;
 }
 
 }
+
+/* Text areas grow with their rows */
+textarea.form-control{
+    height:auto;
+}
+
+.report-purpose{
+    color:#6b7c93;
+    font-size:14px;
+    margin:0 0 14px;
+}
+
+.report-purpose i{
+    color:#198754;
+    margin-right:4px;
+}
+
+.report-tabs{
+    row-gap:10px;
+}
+
+.report-tabs .tab-count{
+    display:inline-block;
+    min-width:22px;
+    margin-left:6px;
+    padding:1px 7px;
+    border-radius:20px;
+    background:#d1f7dd;
+    color:#198754;
+    font-size:12px;
+    text-align:center;
+}
+
+.report-tabs .nav-link.active .tab-count{
+    background:rgba(255,255,255,.25);
+    color:#fff;
+}
+
+.status-count{
+    background:#eef2ef;
+    color:#4b5563;
+}
+
+#count-Revision{
+    background:#dbeafe;
+    color:#1d4ed8;
+}
+
+/* Status badges */
+.badge{
+    padding:7px 14px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+}
+
+.badge-warning{ background:#fff3cd; color:#b45309; }
+.badge-success{ background:#d1f7dd; color:#198754; }
+.badge-danger{ background:#fde2e2; color:#dc3545; }
+.badge-revision{ background:#dbeafe; color:#1d4ed8; }
+
+/* Rows */
+.rp-title{ font-weight:600; color:#1f2937; }
+.rp-meta{ font-size:12px; color:#6c757d; margin-top:2px; }
+.rp-desc{ font-size:12.5px; color:#4b5563; margin-top:4px; max-width:380px; }
+
+.rp-remarks{
+    font-size:12px;
+    color:#374151;
+    background:#f8fafc;
+    border-left:3px solid #93c5fd;
+    border-radius:6px;
+    padding:5px 8px;
+    margin-top:6px;
+    max-width:260px;
+}
+
+.rp-project{ font-weight:600; color:#198754; }
+.rp-project:hover{ color:#146c43; text-decoration:underline; }
+
+.rp-ref{
+    display:block;
+    font-size:11px;
+    font-weight:700;
+    color:#6c757d;
+    letter-spacing:.3px;
+}
+
+.rp-unassigned{
+    display:inline-block;
+    font-size:12.5px;
+    color:#b45309;
+    background:#fffbeb;
+    border:1px dashed #fcd34d;
+    border-radius:8px;
+    padding:3px 8px;
+}
+
+.rp-link-btn{
+    border:1px solid #86efac;
+    background:#f0fdf4;
+    color:#198754;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:600;
+    padding:3px 10px;
+    margin-left:6px;
+}
+
+.rp-link-btn:hover{ background:#198754; border-color:#198754; color:#fff; }
+
+.rp-actions{ display:flex; flex-wrap:wrap; gap:4px; }
+
+.action-btn{ border:1px solid #e5e7eb; background:#fff; margin-right:0; }
+.rp-view{ color:#198754; border-color:#bbf7d0; background:#f0fdf4; }
+.rp-view:hover{ color:#fff; background:#198754; }
+.rp-edit,
+.rp-move{ color:#1d4ed8; border-color:#bfdbfe; }
+.rp-edit:hover,
+.rp-move:hover{ color:#fff; background:#2563eb; }
+.delete-report{ color:#dc3545; border-color:#fecaca; background:#fff5f5; }
+.delete-report:hover{ color:#fff; background:#dc3545; }
+
+.rp-open{
+    border:1px solid #bbf7d0;
+    background:#f0fdf4;
+    color:#198754;
+    border-radius:8px;
+    font-weight:600;
+}
+
+.rp-open:hover{ background:#198754; color:#fff; }
+
+.rp-empty{ text-align:center; color:#9ca3af; padding:28px 10px; }
+.rp-empty i{ margin-right:6px; }
+
+.rp-note{
+    background:#fffbeb;
+    border:1px solid #fde68a;
+    color:#92400e;
+    border-radius:12px;
+    padding:10px 14px;
+    font-size:14px;
+}
+
+.rp-note.info{ background:#f0fdf4; border-color:#bbf7d0; color:#166534; }
+
+.rp-swal-sub{ font-weight:600; color:#374151; margin-bottom:6px; }
+
+.upload-modal label{ margin-bottom:6px; }
+.req{ color:#dc3545; }
+
+#latest_upload{ display:block; max-width:170px; }
 </style>
 
 
 <div class="container-fluid">
-    <div class="row mb-4">
+
+<p class="report-purpose">
+    <i class="fas fa-info-circle"></i>
+    Manage and review reports across all extension projects. Every report belongs to a project and
+    also appears in that project's Post-Activity tab.
+</p>
+
+<div class="row mb-4">
 
     <div class="col-md-3">
         <div class="stat-card green">
@@ -534,14 +694,12 @@ font-size:13px;
     </div>
 
     <div class="col-md-3">
-        <div>
-            <div class="stat-card orange">
-                <div>
-                    <h6>Storage Used</h6>
-                    <h2 id="storage_used">0 MB</h2>
-                </div>
-                <i class="fa fa-database"></i>
+        <div class="stat-card orange">
+            <div>
+                <h6>Storage Used</h6>
+                <h2 id="storage_used">0 MB</h2>
             </div>
+            <i class="fa fa-database"></i>
         </div>
     </div>
 
@@ -549,7 +707,7 @@ font-size:13px;
         <div class="stat-card purple">
             <div>
                 <h6>Latest Upload</h6>
-                <small id="latest_upload">No upload</small>
+                <small id="latest_upload" class="text-truncate">No upload</small>
             </div>
             <i class="fa fa-clock"></i>
         </div>
@@ -559,13 +717,21 @@ font-size:13px;
 
 <ul class="nav report-tabs mb-4">
     <li class="nav-item">
-        <a href="#" class="nav-link active" data-type="Terminal Report">
+        <a href="#terminal" class="nav-link active">
             <i class="fa fa-flag-checkered"></i> Terminal Report
+            <span class="tab-count" id="count-terminal">0</span>
         </a>
     </li>
     <li class="nav-item">
-        <a href="#" class="nav-link" data-type="Progress Report">
+        <a href="#progress" class="nav-link">
             <i class="fa fa-chart-line"></i> Progress Report
+            <span class="tab-count" id="count-progress">0</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="#impact" class="nav-link">
+            <i class="fa fa-seedling"></i> Impact Assessment
+            <span class="tab-count" id="count-impact">0</span>
         </a>
     </li>
 </ul>
@@ -579,11 +745,8 @@ font-size:13px;
 <div class="upload-header list-header">
 
 <h4>
-
 <i class="fa fa-folder-open"></i>
-
 My <span class="report-type-label">Terminal Report</span>s
-
 </h4>
 
 <button type="button" class="btn btn-open-upload" id="open-upload">
@@ -593,13 +756,19 @@ My <span class="report-type-label">Terminal Report</span>s
 
 </div>
 
-<div class="card-body table-responsive">
+<div class="card-body">
 
 <ul class="nav status-tabs mb-3">
     <li class="nav-item">
         <a href="#" class="nav-link active" data-status="Pending">
             <i class="fa fa-clock"></i> Pending
             <span class="status-count" id="count-Pending">0</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a href="#" class="nav-link" data-status="Revision">
+            <i class="fa fa-undo"></i> Needs Revision
+            <span class="status-count" id="count-Revision">0</span>
         </a>
     </li>
     <li class="nav-item">
@@ -614,6 +783,12 @@ My <span class="report-type-label">Terminal Report</span>s
             <span class="status-count" id="count-Rejected">0</span>
         </a>
     </li>
+    <li class="nav-item">
+        <a href="#" class="nav-link" data-status="All">
+            <i class="fa fa-list"></i> All
+            <span class="status-count" id="count-All">0</span>
+        </a>
+    </li>
 </ul>
 
 <div class="report-filters mb-3">
@@ -625,17 +800,22 @@ My <span class="report-type-label">Terminal Report</span>s
             </span>
         </div>
         <input type="text" class="form-control" id="search-report"
-               placeholder="Search reports...">
+               placeholder="Search reports or projects...">
     </div>
 
-    <select class="form-control report-filter" id="filter-category">
+    <select class="form-control report-filter" id="filter-project" aria-label="Project">
+        <option value="">All Projects</option>
+        <option value="none">Unassigned project</option>
+    </select>
+
+    <select class="form-control report-filter" id="filter-category" aria-label="Category">
         <option value="">All Categories</option>
         <option>Research</option>
         <option>Extension</option>
         <option>Training</option>
     </select>
 
-    <select class="form-control report-filter" id="sort-report">
+    <select class="form-control report-filter" id="sort-report" aria-label="Sort">
         <option value="newest">Sort by : Newest</option>
         <option value="oldest">Oldest</option>
         <option value="title">Title</option>
@@ -643,48 +823,26 @@ My <span class="report-type-label">Terminal Report</span>s
 
 </div>
 
+<div class="rp-note mb-3" id="unassigned-note" style="display:none"></div>
+
+<div class="rp-note info mb-3" id="impact-note" style="display:none">
+    <i class="fas fa-info-circle"></i>
+    The Impact Assessment is written inside its project, in the Post-Activity tab, once the project is completed.
+    Open a project to start or continue one.
+</div>
+
+<div class="table-responsive">
 <table class="table table-hover align-middle">
-
-    <thead class="bg-light">
-
-        <tr>
-
-            <th>#</th>
-
-            <th>Report</th>
-
-            <th>Category</th>
-
-            <th> Date Uploaded</th>
-
-          <th>Size</th>
-
-            <th>Status</th>
-
-            <th width="180">Action</th>
-
-        </tr>
-
-    </thead>
-
+    <thead class="bg-light" id="report-head"></thead>
     <tbody id="report-list">
-
+        <tr><td><div class="rp-empty"><i class="fas fa-spinner fa-spin"></i> Loading reports...</div></td></tr>
     </tbody>
-
 </table>
-
-
-
-
-
-
-
 </div>
 
 </div>
 
-
-
+</div>
 
 </div>
 
@@ -693,7 +851,7 @@ My <span class="report-type-label">Terminal Report</span>s
 </div>
 
 
-<!-- UPLOAD REPORT MODAL -->
+<!-- UPLOAD / EDIT REPORT MODAL -->
 <div class="modal fade upload-modal" id="upload-modal" tabindex="-1" role="dialog"
      aria-labelledby="upload-modal-title" aria-hidden="true">
 
@@ -705,7 +863,7 @@ My <span class="report-type-label">Terminal Report</span>s
 
 <h4 id="upload-modal-title">
 <i class="fa fa-cloud-upload-alt"></i>
-Upload <span class="report-type-label">Terminal Report</span>
+<span id="upload-modal-label">Upload Report</span>
 </h4>
 
 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -716,18 +874,49 @@ Upload <span class="report-type-label">Terminal Report</span>
 
 <div class="modal-body upload-body">
 
-<form id="upload-report" enctype="multipart/form-data">
+<form id="upload-report" enctype="multipart/form-data" novalidate>
 
-    <input type="hidden" name="report_type" id="report_type" value="Terminal Report">
+    <input type="hidden" name="id" id="report_id" value="">
 
     <div class="form-group">
-        <label><b>Report Title</b></label>
-        <input type="text" name="title" class="form-control" placeholder="Enter report title" required>
+        <label for="report_project"><b>Project</b> <span class="req">*</span></label>
+        <select name="project_id" id="report_project" class="form-control">
+            <option value="">Choose the project this report is for</option>
+        </select>
+        <!-- Shown when you have no project yet -->
+        <div id="no-project" class="alert alert-warning small mt-2 mb-0" style="display:none">
+            You have no project yet. Reports belong to a project, so
+            <a href="index.php?page=projects">create the project first</a>.
+        </div>
     </div>
 
     <div class="form-group mt-3">
-        <label><b>Category</b> <small class="text-muted">(optional)</small></label>
-        <select class="form-control" name="category">
+        <label for="report_type"><b>Report Type</b> <span class="req">*</span></label>
+        <select name="report_type" id="report_type" class="form-control">
+            <option value="Terminal Report">Terminal Report</option>
+            <option value="Progress Report">Progress Report</option>
+        </select>
+    </div>
+
+    <div class="form-group mt-3">
+        <label for="report_title"><b>Report Title</b> <span class="req">*</span></label>
+        <input type="text" name="title" id="report_title" class="form-control" placeholder="Enter report title" maxlength="255">
+    </div>
+
+    <div class="form-row mt-3">
+        <div class="form-group col-6">
+            <label for="period_start"><b>Reporting Period</b> <small class="text-muted">(from)</small></label>
+            <input type="date" name="period_start" id="period_start" class="form-control">
+        </div>
+        <div class="form-group col-6">
+            <label for="period_end"><b>&nbsp;</b><small class="text-muted">(to)</small></label>
+            <input type="date" name="period_end" id="period_end" class="form-control">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="report_category"><b>Category</b> <small class="text-muted">(optional)</small></label>
+        <select class="form-control" name="category" id="report_category">
             <option value="">Select category</option>
             <option>Research</option>
             <option>Extension</option>
@@ -736,15 +925,18 @@ Upload <span class="report-type-label">Terminal Report</span>
     </div>
 
     <div class="form-group mt-3">
-        <label><b>Description</b> <small class="text-muted">(optional)</small></label>
+        <label for="report_description"><b>Description</b> <small class="text-muted">(optional)</small></label>
         <textarea
             name="description"
+            id="report_description"
             class="form-control"
             rows="3"
-            placeholder="Enter description"></textarea>
+            placeholder="What this report covers"></textarea>
     </div>
 
     <div class="form-group mt-3 mb-0">
+
+        <label><b>Report File</b> <span class="req" id="file-required">*</span></label>
 
         <div class="upload-area" id="upload-area">
 
@@ -752,13 +944,12 @@ Upload <span class="report-type-label">Terminal Report</span>
                 type="file"
                 id="report"
                 name="report"
-                accept=".pdf"
-                hidden
-                required>
+                accept=".pdf,.doc,.docx"
+                hidden>
 
             <i class="fa fa-cloud-upload upload-big-icon"></i>
 
-            <h5 class="mt-2">Drag & Drop your PDF here</h5>
+            <h5 class="mt-2">Drag &amp; Drop your file here</h5>
 
             <small class="text-muted d-block mb-3">
                 or
@@ -770,10 +961,14 @@ Upload <span class="report-type-label">Terminal Report</span>
             </button>
 
             <div class="upload-info mt-3">
-                Only PDF files allowed • Maximum size: 10 MB
+                PDF or Word (.doc, .docx) • Maximum size: 20 MB
             </div>
 
         </div>
+
+        <small class="text-muted d-block mt-2" id="keep-file-note" style="display:none !important">
+            Leave it empty to keep the current file.
+        </small>
 
     </div>
 
@@ -785,7 +980,7 @@ Upload <span class="report-type-label">Terminal Report</span>
             <div class="d-flex align-items-center">
 
                 <div class="selected-pdf-icon">
-                    <i class="fa fa-file-pdf"></i>
+                    <i class="fa fa-file-alt"></i>
                 </div>
 
                 <div class="ml-3 flex-grow-1 text-truncate">
@@ -824,7 +1019,7 @@ Upload <span class="report-type-label">Terminal Report</span>
 
     <button type="submit" form="upload-report" class="btn btn-upload px-4">
         <i class="fa fa-upload"></i>
-        Upload Report
+        <span class="btn-upload-label">Submit Report</span>
     </button>
 
 </div>
@@ -836,347 +1031,214 @@ Upload <span class="report-type-label">Terminal Report</span>
 </div>
 
 
+<script src="assets/js/reports.js?v=<?php echo @filemtime('assets/js/reports.js') ?: 1; ?>"></script>
 <script>
-const uploadArea = document.getElementById("upload-area");
-const fileInput = document.getElementById("report");
-const browseBtn = document.getElementById("browse-btn");
-const fileName = document.getElementById("file-name");
-const fileSize = document.getElementById("file-size");
-const selectedFile = document.getElementById("selected-file");
-const removeFile = document.getElementById("remove-file");
+$(function(){
 
-// Open file browser
-browseBtn.addEventListener("click", function () {
-    fileInput.click();
-});
+    var MAX_BYTES = 20 * 1024 * 1024;
+    var ALLOWED = /\.(pdf|docx?)$/i;
 
-// Display selected file name
-fileInput.addEventListener("change", function () {
+    var fileInput = document.getElementById("report");
 
-    if(this.files.length){
-
-        showSelectedFile(this.files[0]);
-
+    function today(){
+        var d = new Date();
+        return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
     }
 
-});
-// Drag effects
-uploadArea.addEventListener("dragover", function (e) {
-    e.preventDefault();
-    uploadArea.classList.add("dragover");
-});
+    var page = ReportsPage({
+        admin: false,
+        // The cards count the reports the filters show, of both types
+        stats: function(reports){
 
-uploadArea.addEventListener("dragleave", function () {
-    uploadArea.classList.remove("dragover");
-});
+            var bytes = 0, todays = 0, latest = null;
 
-// Drop file
-uploadArea.addEventListener("drop", function (e) {
-    e.preventDefault();
-    uploadArea.classList.remove("dragover");
-
-    const files = e.dataTransfer.files;
-
-    if (files.length > 0) {
-
-        if (files[0].type !== "application/pdf") {
-            Swal.fire({
-                icon: "error",
-                title: "Invalid File",
-                text: "Only PDF files are allowed."
+            $.each(reports, function(i, r){
+                bytes += r.bytes || 0;
+                if(r.uploaded_date === today()) todays++;
+                if(!latest || r.uploaded_at > latest.uploaded_at) latest = r;
             });
-            return;
-        }
 
-       fileInput.files = files;
-showSelectedFile(files[0]);
-    }
-});
+            $("#total_reports").text(reports.length);
+            $("#today_reports").text(todays);
+            $("#storage_used").text((bytes / 1048576).toFixed(2) + " MB");
+            $("#latest_upload").text(latest ? latest.title + " · " + latest.uploaded_display : "No upload")
+                               .attr("title", latest ? latest.title : "");
+        },
+        edit: open_form
+    });
 
-$(document).ready(function () {
-
-    load_reports();
+    // The projects a report can be for (your own)
+    page.projects.done(function(projects){
+        var select = $("#report_project");
+        $.each(projects, function(i, p){
+            select.append($("<option>").val(p.id).text(p.ref + " · " + p.title + (p.term ? " (" + p.term + ")" : "")));
+        });
+        $("#no-project").toggle(projects.length === 0);
+    });
 
     // Move the modal to <body> so the page's cards can't stack it under the backdrop
     $("#upload-modal").appendTo("body");
 
-    $("#open-upload").click(function () {
-        $("#upload-modal").modal("show");
+    /* ---------------- the form ---------------- */
+
+    function show_file(file){
+        $("#file-name").text(file.name);
+        $("#file-size").text((file.size / 1024 / 1024).toFixed(2) + " MB");
+        $("#selected-file").show();
+    }
+
+    function clear_file(){
+        fileInput.value = "";
+        $("#selected-file").hide();
+        $("#file-name, #file-size").text("");
+    }
+
+    function usable(file){
+        if(!ALLOWED.test(file.name)){
+            Swal.fire({ icon: "error", title: "Invalid File", text: "Please choose a PDF or Word document." });
+            return false;
+        }
+        if(file.size > MAX_BYTES){
+            Swal.fire({ icon: "error", title: "File Too Large", text: "The file is larger than 20 MB." });
+            return false;
+        }
+        return true;
+    }
+
+    // A new report (optionally for a project and type), or one of yours to change and resubmit
+    function open_form(report, project_id, type){
+
+        var editing = !!(report && report.id);
+
+        $("#upload-report")[0].reset();
+        clear_file();
+
+        $("#report_id").val(editing ? report.id : "");
+        $("#upload-modal-label").text(editing ? "Edit Report" : "Upload Report");
+        $(".btn-upload-label").text(editing ? "Save and Resubmit" : "Submit Report");
+        $("#file-required").toggle(!editing);
+        $("#keep-file-note").attr("style", editing ? "" : "display:none !important");
+
+        page.projects.done(function(){
+            if(editing){
+                $("#report_project").val(report.project_id ? String(report.project_id) : "");
+                $("#report_type").val(report.type);
+                $("#report_title").val(report.title);
+                $("#period_start").val(report.period_start || "");
+                $("#period_end").val(report.period_end || "");
+                $("#report_category").val(report.category || "");
+                $("#report_description").val(report.description || "");
+            }else{
+                $("#report_project").val(project_id ? String(project_id) : "");
+                $("#report_type").val(type || page.type() || "Terminal Report");
+                if(!$("#report_type").val()) $("#report_type").val("Terminal Report");
+            }
+            $("#upload-modal").modal("show");
+        });
+    }
+
+    $("#open-upload").click(function(){
+        open_form(null);
     });
 
-    $("#upload-modal").on("shown.bs.modal", function () {
-        $("#upload-report [name='title']").trigger("focus");
+    $("#upload-modal").on("shown.bs.modal", function(){
+        $($("#report_project").val() ? "#report_title" : "#report_project").trigger("focus");
     });
 
-    $(".report-tabs .nav-link").click(function (e) {
+    $("#browse-btn").click(function(){
+        fileInput.click();
+    });
+
+    $(fileInput).change(function(){
+        if(this.files.length){
+            if(usable(this.files[0])){
+                show_file(this.files[0]);
+            }else{
+                clear_file();
+            }
+        }
+    });
+
+    $("#remove-file").click(clear_file);
+
+    $("#upload-area").on("dragover", function(e){
+        e.preventDefault();
+        $(this).addClass("dragover");
+    }).on("dragleave", function(){
+        $(this).removeClass("dragover");
+    }).on("drop", function(e){
+        e.preventDefault();
+        $(this).removeClass("dragover");
+        var files = e.originalEvent.dataTransfer.files;
+        if(files.length && usable(files[0])){
+            fileInput.files = files;
+            show_file(files[0]);
+        }
+    });
+
+    $("#upload-report").submit(function(e){
 
         e.preventDefault();
 
-        $(".report-tabs .nav-link").removeClass("active");
-        $(this).addClass("active");
+        var editing = !!$("#report_id").val();
+        var problem =
+            !$("#report_project").val() ? "Choose the project this report is for." :
+            !$.trim($("#report_title").val()) ? "Please enter the report title." :
+            (!editing && !fileInput.files.length) ? "Please attach the report file." :
+            ($("#period_start").val() && $("#period_end").val() && $("#period_start").val() > $("#period_end").val())
+                ? "The reporting period ends before it starts." : "";
 
-        var type = $(this).data("type");
+        if(problem){
+            Swal.fire({ icon: "warning", title: "Almost there", text: problem });
+            return;
+        }
 
-        $("#report_type").val(type);
-        $(".report-type-label").text(type);
-
-        load_reports();
-
-    });
-
-    $(".status-tabs .nav-link").click(function (e) {
-
-        e.preventDefault();
-
-        set_status_tab($(this).data("status"));
-
-        load_reports();
-
-    });
-
-    var searchTimer;
-
-    $("#search-report").on("input", function () {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(load_reports, 300);
-    });
-
-    $(".report-filter").change(load_reports);
-
-    $("#upload-report").submit(function (e) {
-
-        e.preventDefault();
-
-        var formData = new FormData(this);
+        var type = $("#report_type").val();
+        var button = $(".btn-upload");
 
         $.ajax({
-
-            url: "ajax.php?action=upload_report",
+            url: "ajax.php?action=report_save",
             type: "POST",
-            data: formData,
+            data: new FormData(this),
             processData: false,
             contentType: false,
+            dataType: "json",
+            beforeSend: function(){
+                button.prop("disabled", true).find("i").attr("class", "fa fa-spinner fa-spin");
+            }
+        }).done(function(resp){
 
-            beforeSend: function () {
-
-                $(".btn-upload")
-                    .prop("disabled", true)
-                    .html('<i class="fa fa-spinner fa-spin"></i> Uploading...');
-
-            },
-
-            success: function (resp) {
-
-                if ($.trim(resp) == "1") {
-
-                    Swal.fire({
-                        icon: "success",
-                        title: "Uploaded!",
-                        text: "Report uploaded successfully.",
-                        timer: 1800,
-                        showConfirmButton: false
-                    });
-
-                    $("#upload-modal").modal("hide");
-
-                    $("#upload-report")[0].reset();
-                    $("#file-name").html("");
-                    $("#selected-file").hide();
-
-                    // New uploads wait for admin approval
-                    set_status_tab("Pending");
-
-                    load_reports();
-
-                } else {
-
-                    Swal.fire({
-                        icon: "error",
-                        title: "Upload Failed",
-                        text: resp
-                    });
-
-                }
-
-            },
-
-            error: function (xhr, status, error) {
-
-                Swal.fire({
-                    icon: "error",
-                    title: "AJAX Error",
-                    text: error
-                });
-
-                console.log(xhr.responseText);
-
-            },
-
-            complete: function () {
-
-                $(".btn-upload")
-                    .prop("disabled", false)
-                    .html('<i class="fa fa-upload"></i> Upload Report');
-
+            if(!resp.ok){
+                Swal.fire({ icon: "error", title: "Not submitted", text: resp.error });
+                return;
             }
 
+            Swal.fire({
+                icon: "success",
+                title: editing ? "Resubmitted!" : "Submitted!",
+                text: "The report is waiting for the Extension Office's review. It also appears in the project's Post-Activity tab.",
+                timer: 2200,
+                showConfirmButton: false
+            });
+
+            $("#upload-modal").modal("hide");
+
+            // New and changed reports wait for review
+            page.show(type, "Pending");
+
+        }).fail(function(xhr){
+            var resp = xhr.responseJSON;
+            Swal.fire({ icon: "error", title: "Not submitted", text: (resp && resp.error) || "Please try again." });
+        }).always(function(){
+            button.prop("disabled", false).find("i").attr("class", "fa fa-upload");
         });
-
     });
+
+    // Opened from a project's "Upload a Report" button (?new=1&project=ID)
+    var params = new URLSearchParams(location.search);
+    if(params.get("new") === "1"){
+        open_form(null, params.get("project"), params.get("type"));
+    }
 
 });
-
-function showSelectedFile(file){
-
-    fileName.innerHTML = file.name;
-
-    fileSize.innerHTML = (file.size/1024/1024).toFixed(2)+" MB";
-
-    selectedFile.style.display="block";
-
-}
-
-
-removeFile.addEventListener("click",function(){
-
-    fileInput.value="";
-
-    selectedFile.style.display="none";
-
-    fileName.innerHTML="";
-
-    fileSize.innerHTML="";
-
-});
-
-
-
-function delete_report(id){
-
-    Swal.fire({
-        title: 'Delete Report?',
-        text: 'This action cannot be undone.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'Delete'
-    }).then((result)=>{
-
-        if(result.isConfirmed){
-
-            $.ajax({
-
-                url:"ajax.php?action=delete_report",
-                method:"POST",
-                data:{id:id},
-
-                success:function(resp){
-
-                    if($.trim(resp)=="1"){
-
-                        Swal.fire(
-                            "Deleted!",
-                            "Report deleted successfully.",
-                            "success"
-                        );
-
-                        load_reports();
-
-                    }else{
-
-                        Swal.fire(
-                            "Error",
-                            resp,
-                            "error"
-                        );
-
-                    }
-
-                }
-
-            });
-
-        }
-
-    });
-
-}
-
-
-
-var currentStatus = "Pending";
-
-function set_status_tab(status) {
-
-    currentStatus = status;
-
-    $(".status-tabs .nav-link").removeClass("active");
-    $('.status-tabs .nav-link[data-status="' + status + '"]').addClass("active");
-
-}
-
-function load_reports() {
-
-    $.ajax({
-
-        url: "ajax.php?action=list_reports",
-
-        data: {
-            report_type: $("#report_type").val(),
-            search: $("#search-report").val(),
-            status: currentStatus,
-            category: $("#filter-category").val(),
-            sort: $("#sort-report").val()
-        },
-
-        success: function (resp) {
-
-            $("#report-list").html(resp);
-
-        },
-
-        error: function (xhr) {
-
-            console.log(xhr.responseText);
-
-        }
-
-    });
-
-    load_counts();
-
-}
-
-function load_counts() {
-
-    $.ajax({
-
-        url: "ajax.php?action=report_counts",
-        method: "POST",
-        dataType: "json",
-
-        data: {
-            search: $("#search-report").val(),
-            category: $("#filter-category").val()
-        },
-
-        success: function (resp) {
-
-            var counts = resp.types[$("#report_type").val()];
-
-            $.each(["Pending", "Approved", "Rejected"], function (i, status) {
-                $("#count-" + status).text(counts[status]);
-            });
-
-        },
-
-        error: function (xhr) {
-
-            console.log(xhr.responseText);
-
-        }
-
-    });
-
-}
 </script>

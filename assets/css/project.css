@@ -892,3 +892,269 @@ table.pj-table tbody td {
     .pj-card { padding: 18px 16px; }
     .pj-doc { align-items: flex-start; }
 }
+
+
+/* =====================================================================
+   PROJECT-CENTERED VIEW: header details, progress cards, the stage path,
+   activities with their evaluations and photos, reports, impact, files
+===================================================================== */
+
+.pj-head-text { min-width: 0; flex: 1 1 260px; }
+
+.pj-head-ref {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    opacity: .8;
+    text-transform: uppercase;
+}
+
+.pj-head .pj-head-coordinator { margin-top: 2px; font-size: 13px; }
+
+.pj-head-stage {
+    align-self: center;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .12);
+}
+
+.pj-status.pending { background: #fff4e0; color: #b45309; }
+
+/* progress cards under the timeline */
+.pj-summary {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.pj-sum {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    text-align: left;
+    background: #f8fbfd;
+    border: 1px solid #eef2f7;
+    border-radius: 13px;
+    padding: 12px;
+    min-width: 0;
+    transition: border-color .2s, background .2s;
+}
+
+.pj-sum:hover { border-color: #b7dcc8; background: #f2faf5; }
+
+.pj-sum-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #e6f4ec;
+    color: #1d5b42;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pj-sum-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.pj-sum-label { font-size: 11.5px; font-weight: 700; color: #6b7c93; }
+.pj-sum-value { font-size: 19px; font-weight: 700; color: #102a43; overflow-wrap: anywhere; }
+.pj-sum-value.small { font-size: 14px; margin: 2px 0; }
+.pj-sum-note { font-size: 11.5px; color: #8a99ac; }
+
+/* the stage path in Overview */
+.pj-path {
+    list-style: none;
+    padding: 0;
+    margin: 6px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pj-path-step {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px 6px 6px;
+    border-radius: 999px;
+    background: #f4f6f9;
+    color: #8a99ac;
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.pj-path-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid #dde5ee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+}
+
+.pj-path-step.past { background: #e6f4ec; color: #1d5b42; }
+.pj-path-step.past .pj-path-dot { background: #1d5b42; border-color: #1d5b42; color: #fff; }
+.pj-path-step.now { background: #1d5b42; color: #fff; box-shadow: 0 4px 10px rgba(29, 91, 66, .25); }
+.pj-path-step.now .pj-path-dot { background: #fff; border-color: #fff; color: #1d5b42; }
+
+.pj-suggest {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: #f2faf5;
+    border: 1px dashed #9fd3b4;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-top: 14px;
+    color: #1d5b42;
+    font-size: 14px;
+}
+
+.pj-suggest > div { flex: 1 1 220px; }
+
+.pj-stage-set {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.pj-stage-set label { margin: 0; font-weight: 600; font-size: 13px; color: #6b7c93; }
+.pj-stage-set select { width: auto; min-width: 200px; }
+
+/* an activity in Conducting */
+.pj-activity {
+    display: flex;
+    gap: 16px;
+    border: 1px solid #eef2f7;
+    border-radius: 13px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.pj-activity-main { flex: 1 1 300px; min-width: 0; }
+
+.pj-activity-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.pj-activity-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+.pj-stat {
+    background: #f4f8fd;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #344a6e;
+}
+
+.pj-stat i { color: #1d5b42; margin-right: 3px; }
+
+.pj-thumbs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+
+.pj-thumbs img {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #eef2f7;
+}
+
+.pj-thumb-more {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    background: #f4f6f9;
+    color: #6b7c93;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* reports, impact and files */
+.pj-sub-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #344a6e;
+    margin: 18px 0 10px;
+}
+
+.pj-sub-title i { color: #1d5b42; margin-right: 4px; }
+
+.pj-count {
+    background: #e6f4ec;
+    color: #1d5b42;
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-size: 12px;
+    margin-left: 4px;
+}
+
+.pj-empty-small { padding: 14px; font-size: 13.5px; }
+
+.pj-due {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    background: #f4f8fd;
+    color: #344a6e;
+    font-size: 14px;
+}
+
+.pj-due > i { font-size: 18px; margin-top: 2px; color: #6b7c93; }
+.pj-due small { display: block; color: #8a99ac; margin-top: 2px; }
+.pj-due.due { background: #fff8e6; color: #92400e; }
+.pj-due.due > i { color: #f59e0b; }
+
+@media (max-width: 1199px) {
+    .pj-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+    .pj-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pj-activity-side { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
+    .pj-head-stage { order: -1; }
+}
+
+/* A documentation photo its coordinator may remove */
+.pj-thumb { position: relative; display: inline-block; }
+
+.pj-thumb-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: #dc3545;
+    color: #fff;
+    font-size: 14px;
+    line-height: 20px;
+    padding: 0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+    opacity: 0;
+    transition: opacity .15s;
+}
+
+.pj-thumb:hover .pj-thumb-remove,
+.pj-thumb-remove:focus { opacity: 1; }
+
+@media (hover: none) {
+    .pj-thumb-remove { opacity: 1; }
+}

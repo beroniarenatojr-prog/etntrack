@@ -315,3 +315,49 @@ table.at-table tbody tr:hover{
     }
 
 }
+
+
+/* The project each activity belongs to, and its evaluations and photos */
+.at-project { font-weight: 600; color: #1d5b42; }
+a.at-project:hover { text-decoration: underline; color: #174a36; }
+
+.at-unassigned { color: #b45309; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+
+.at-link-btn {
+    border: 1px solid #f3d19e;
+    background: #fff8e6;
+    color: #92400e;
+    border-radius: 7px;
+    padding: 1px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.at-link-btn:hover { background: #fdecc8; }
+
+.at-count { color: #344a6e; font-weight: 600; font-size: 13px; }
+.at-count i { color: #8a99ac; margin-right: 2px; }
+
+.at-phase {
+    display: inline-block;
+    margin-top: 3px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #e6f7ef;
+    color: #15803d;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.at-phase.today { background: #e0f2fe; color: #0369a1; }
+
+/* What the Activities page is for */
+.at-page-purpose {
+    color: #6b7c93;
+    font-size: 14px;
+    margin: 0 0 14px;
+}
+
+.at-page-purpose i { color: #198754; margin-right: 4px; }

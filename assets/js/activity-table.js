@@ -29,10 +29,27 @@ var ActivityTable = (function($){
 
     function status_badge(row){
         var html = '<span class="at-status ' + esc(row.status) + '">' + esc(row.status_label) + '</span>';
+        if(row.phase === "conducted"){
+            html += ' <span class="at-phase"><i class="fas fa-check"></i> Conducted</span>';
+        }else if(row.phase === "today"){
+            html += ' <span class="at-phase today">Today</span>';
+        }
         if(row.revision_note){
             html += ' <i class="fas fa-comment-dots at-note-icon" title="' + esc("Admin note: " + row.revision_note) + '"></i>';
         }
         return html;
+    }
+
+    // The project an activity belongs to: a link for whoever may open it,
+    // "Unassigned project" (with Link, when allowed) for one that has none yet
+    function project_cell(row){
+        if(!row.project_id){
+            return '<span class="at-unassigned"><i class="fas fa-unlink"></i> Unassigned project</span>' +
+                   (row.can_assign ? ' <button type="button" class="at-link-btn" data-assign="1">Link</button>' : "");
+        }
+        return row.can_open_project
+            ? '<a class="at-project" href="index.php?page=project_detail&id=' + row.project_id + '" title="Open the project">' + esc(row.project_title) + "</a>"
+            : '<span class="at-project">' + esc(row.project_title) + "</span>";
     }
 
     /* ---------------- ⋮ menu (one shared menu, fixed to the window) ---------------- */
@@ -81,6 +98,18 @@ var ActivityTable = (function($){
             if(row.status === "approved"){
                 items.push({ act: "qr", icon: "fa-qrcode", label: "Generate QR" });
             }
+            if(row.evaluations > 0){
+                items.push({ act: "results", icon: "fa-chart-bar", label: "View Results" });
+            }
+        }
+
+        // Its coordinator adds the photos of the day once the activity is approved
+        if(row.own && row.status === "approved"){
+            items.push({ act: "photos", icon: "fa-camera", label: "Add Photos" });
+        }
+
+        if(row.can_assign){
+            items.push({ act: "assign", icon: "fa-link", label: row.project_id ? "Move to Another Project" : "Link to a Project" });
         }
 
         if(row.can_delete){
@@ -165,8 +194,11 @@ var ActivityTable = (function($){
             '<table class="at-view-details">' +
                 '<tr><th>ID</th><td>' + esc(row.ref) + '</td></tr>' +
                 '<tr><th>Status</th><td>' + status_badge(row) + '</td></tr>' +
-                '<tr><th>Date &amp; Time</th><td>' + esc(row.date_display) + ' · All day</td></tr>' +
+                '<tr><th>Project</th><td>' + project_cell(row) + '</td></tr>' +
+                '<tr><th>Date &amp; Time</th><td>' + esc(row.date_display) + ' · ' + esc(row.time_display || "All day") + '</td></tr>' +
                 '<tr><th>Venue</th><td>' + esc(row.venue || "No venue") + '</td></tr>' +
+                '<tr><th>Evaluation</th><td>' + (row.evaluations || 0) + ' response' + (row.evaluations === 1 ? "" : "s") + '</td></tr>' +
+                '<tr><th>Documentation</th><td>' + (row.images || []).length + ' photo' + ((row.images || []).length === 1 ? "" : "s") + '</td></tr>' +
                 '<tr><th>Implementer</th><td>' + esc(row.implementer) + '</td></tr>' +
                 '<tr><th>Purpose</th><td>' + esc(row.purpose || "None given") + '</td></tr>' +
                 '<tr><th>Description</th><td>' + esc(row.description || "None given") + '</td></tr>' +
@@ -286,12 +318,20 @@ var ActivityTable = (function($){
                 render: function(d, type){ return type === "display" ? '<span class="at-title">' + esc(d) + "</span>" : d; }
             },
             {
+                data: "project_title",
+                title: "Project",
+                render: function(d, type, row){
+                    return type === "display" ? project_cell(row) : (d || "Unassigned project");
+                }
+            },
+            {
                 data: "date",
                 title: "Date &amp; Time",
                 className: "text-nowrap",
-                // Sort by the real date, show "Sep 01, 2026 · All day"
+                // Sort by the real date, show "Sep 01, 2026" and the time under it
                 render: function(d, type, row){
-                    return type === "sort" || type === "type" ? d : esc(row.date_display) + ' <span class="at-muted">· All day</span>';
+                    return type === "sort" || type === "type" ? d
+                        : esc(row.date_display) + '<br><span class="at-muted">' + esc(row.time_display || "All day") + "</span>";
                 }
             },
             { data: "venue", title: "Venue", render: function(d){ return esc(d); } }
@@ -302,6 +342,23 @@ var ActivityTable = (function($){
         }
 
         columns.push(
+            {
+                data: "evaluations",
+                title: "Evaluation",
+                className: "text-nowrap",
+                render: function(d, type){
+                    return type === "display" ? '<span class="at-count" title="Evaluation responses"><i class="fas fa-star"></i> ' + (d || 0) + "</span>" : d;
+                }
+            },
+            {
+                data: null,
+                title: "Photos",
+                className: "text-nowrap",
+                render: function(data, type, row){
+                    var count = (row.images || []).length;
+                    return type === "display" ? '<span class="at-count" title="Activity photos"><i class="fas fa-images"></i> ' + count + "</span>" : count;
+                }
+            },
             {
                 data: "status_label",
                 title: "Status",
@@ -320,7 +377,7 @@ var ActivityTable = (function($){
             }
         );
 
-        var date_column = options.selectable ? 3 : 2;
+        var date_column = options.selectable ? 4 : 3;
 
         var dt = $table.DataTable({
             ajax: {
@@ -428,6 +485,85 @@ var ActivityTable = (function($){
                 .fail(function(){ Swal.fire({ icon: "error", title: "Server error", text: "Please try again." }); });
         }
 
+        // A single rejection can say why; the coordinator reads it in the activity
+        function reject_one(row){
+            Swal.fire({
+                title: "Reject \"" + row.title + "\"?",
+                text: "Say why, so " + row.implementer + " knows. The activity is kept, marked Rejected.",
+                input: "textarea",
+                inputPlaceholder: "Reason (optional)",
+                showCancelButton: true,
+                confirmButtonText: "Reject",
+                confirmButtonColor: "#dc3545",
+                cancelButtonColor: "#6c757d"
+            }).then(function(result){
+                if(!result.isConfirmed) return;
+                $.post("ajax.php?action=bulk_activity_action", { do: "reject", ids: [row.id], note: result.value || "" })
+                    .done(function(resp){ finished(resp, "Rejected"); });
+            });
+        }
+
+        // Linking an activity to its project, chosen from the projects you may use
+        function assign_project(row){
+            $.getJSON("ajax.php?action=project_options").done(function(projects){
+                if(!projects.length){
+                    Swal.fire({ icon: "info", title: "No project to choose", text: "Create the project first on the Projects page." });
+                    return;
+                }
+                var choices = {};
+                $.each(projects, function(i, p){
+                    choices[p.id] = p.ref + " · " + p.title + (p.term ? " (" + p.term + ")" : "") + (row.can_review ? " · " + p.coordinator : "");
+                });
+                Swal.fire({
+                    title: "Which project is \"" + row.title + "\" part of?",
+                    input: "select",
+                    inputOptions: choices,
+                    inputValue: row.project_id ? String(row.project_id) : "",
+                    inputPlaceholder: "Choose the project",
+                    showCancelButton: true,
+                    confirmButtonText: "Link",
+                    confirmButtonColor: "#198754",
+                    inputValidator: function(value){ if(!value) return "Please choose a project."; }
+                }).then(function(result){
+                    if(!result.isConfirmed) return;
+                    $.post("ajax.php?action=activity_assign_project", { id: row.id, project_id: result.value })
+                        .done(function(resp){ finished(resp, "Linked to the project"); });
+                });
+            });
+        }
+
+        $table.on("click", "[data-assign]", function(e){
+            e.preventDefault();
+            assign_project(dt.row($(this).closest("tr")).data());
+        });
+
+        // Documentation photos for an approved activity (editing it is closed by then)
+        function add_photos(row){
+
+            var input = $('<input type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>').appendTo("body");
+
+            input.on("change", function(){
+
+                var files = this.files;
+                input.remove();
+                if(!files.length) return;
+
+                var form = new FormData();
+                form.append("id", row.id);
+                $.each(files, function(i, file){ form.append("images[]", file); });
+
+                Swal.fire({ title: "Uploading photos...", allowOutsideClick: false, didOpen: function(){ Swal.showLoading(); } });
+
+                $.ajax({ url: "ajax.php?action=activity_add_photos", method: "POST", data: form, processData: false, contentType: false })
+                    .done(function(resp){ finished(resp, "Photos added"); })
+                    .fail(function(xhr){
+                        Swal.fire({ icon: "error", title: "Not added", text: (xhr.responseJSON && xhr.responseJSON.error) || "Please try again." });
+                    });
+            });
+
+            input.trigger("click");
+        }
+
         function request_revision(row){
             Swal.fire({
                 title: "Needs Revision",
@@ -463,8 +599,19 @@ var ActivityTable = (function($){
                 case "qr":
                     window.open("faculty/generate_qr.php?id=" + row.id, "_blank");
                     break;
-                case "approve":
+                case "results":
+                    window.location = "index.php?page=evaluation_results&activity=" + row.id;
+                    break;
+                case "assign":
+                    assign_project(row);
+                    break;
+                case "photos":
+                    add_photos(row);
+                    break;
                 case "reject":
+                    reject_one(row);
+                    break;
+                case "approve":
                 case "delete":
                     var words = { approve: ["Approve", "#28a745", ""], reject: ["Reject", "#dc3545", ""], delete: ["Delete", "#dc3545", "This can't be undone."] }[action];
                     confirm_action(words[0] + " \"" + row.title + "\"?", words[2], words[0], words[1]).then(function(result){

@@ -38,14 +38,19 @@ $actions = array(
     'update_activity'        => array('coordinator', 'update_activity'),
     'set_activity_revision'  => array('admin',       'set_activity_revision'),
 
-    // Reports
-    'report_counts'          => array('any',         'report_counts'),
-    'delete_report'          => array('any',         'delete_report'),
-    'list_reports'           => array('coordinator', 'list_reports'),
-    'upload_report'          => array('coordinator', 'upload_report'),
-    'list_reportsadmin'      => array('admin',       'list_reportsadmin'),
-    'approve_reportadmin'    => array('admin',       'approve_report'),
-    'reject_reportadmin'     => array('admin',       'reject_report'),
+    'activity_assign_project'=> array('any',         'activity_assign_project'),
+    'activity_add_photos'    => array('coordinator', 'activity_add_photos'),
+    'activity_remove_photo'  => array('coordinator', 'activity_remove_photo'),
+
+    // Reports, each belonging to a project (report_actions.php). The ones that
+    // change something also need the page's security token (see below).
+    'report_list'            => array('any',         'report_list'),
+    'report_summary'         => array('any',         'report_summary'),
+    'report_save'            => array('coordinator', 'report_save'),
+    'report_review'          => array('admin',       'report_review'),
+    'report_delete'          => array('any',         'report_delete'),
+    'report_assign'          => array('any',         'report_assign'),
+    'impact_list'            => array('any',         'impact_list'),
 
     // Projects and their pre-activity documents. Each method checks that the
     // project belongs to the caller before it changes anything.
@@ -55,6 +60,7 @@ $actions = array(
     'project_delete'         => array('any',   'project_delete'),
     'project_set_status'     => array('admin', 'project_set_status'),
     'coordinator_options'    => array('any',   'coordinator_options'),
+    'project_options'        => array('any',   'project_options'),
     'doc_save'               => array('any',   'doc_save'),
     'doc_delete'             => array('any',   'doc_delete'),
     'doc_review'             => array('admin', 'doc_review'),
@@ -143,12 +149,16 @@ if($who !== 'public'){
 }
 
 /*
-| Actions that change a questionnaire must also carry the security token the
-| page was given (footer.php sends it with every request). A page on another
-| website cannot read that token, so it cannot make a signed-in admin's
-| browser change anything here.
+| Actions that change a questionnaire, a report, which project an activity
+| belongs to or its documentation photos must also carry the security token the page was given
+| (footer.php sends it with every request). A page on another website cannot
+| read that token, so it cannot make a signed-in user's browser change
+| anything here.
 */
-if(strpos($action, 'qn_') === 0 && $action !== 'qn_get'){
+$token_actions = array('report_save', 'report_review', 'report_delete', 'report_assign', 'activity_assign_project',
+	'activity_add_photos', 'activity_remove_photo');
+
+if((strpos($action, 'qn_') === 0 && $action !== 'qn_get') || in_array($action, $token_actions, true)){
 
     $sent = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['csrf_token'] ?? '');
 

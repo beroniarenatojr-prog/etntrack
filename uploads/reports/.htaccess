@@ -1,5 +1,4 @@
-# Uploaded files are data, never code.
-# Refuse any request for a script file in this folder, so an uploaded script can never run.
-<FilesMatch "(?i)\.(php[0-9]?|phtml|phar|pht|phps|cgi|pl|py|asp|aspx|jsp|sh)$">
-    Require all denied
-</FilesMatch>
+# Report files are only handed out by report_file.php, which checks who is
+# asking. Nothing in this folder can be opened directly, and no uploaded
+# script can ever run here.
+Require all denied

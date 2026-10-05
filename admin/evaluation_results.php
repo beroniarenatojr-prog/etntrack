@@ -53,6 +53,21 @@ while ($row = $result->fetch_assoc()) {
 
 $questionnaire_id = (int)($_GET['questionnaire'] ?? 0);
 
+// Opened for one activity only (from Activities or a project): the questionnaire it was answered with
+if (!isset($choices[$questionnaire_id]) && (int)($_GET['activity'] ?? 0) > 0) {
+    $answered = $conn->query("
+        SELECT questionnaire_id, COUNT(*) AS total
+        FROM evaluation_responses
+        WHERE activity_id = ".(int)$_GET['activity']."
+        GROUP BY questionnaire_id
+        ORDER BY total DESC, questionnaire_id DESC
+        LIMIT 1
+    ")->fetch_assoc();
+    if ($answered) {
+        $questionnaire_id = (int)$answered['questionnaire_id'];
+    }
+}
+
 if (!isset($choices[$questionnaire_id])) {
     $questionnaire_id = $choices ? (int)array_key_first($choices) : 0;
 }
