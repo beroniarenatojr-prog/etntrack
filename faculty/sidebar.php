@@ -225,7 +225,7 @@
 
 
 
-                <!-- Projects, with the activities and reports that belong to them -->
+                <!-- Projects, with the activities that belong to them; reports are uploaded inside each project -->
                 <li class="nav-item has-treeview">
 
                     <a href="#" class="nav-link">
@@ -269,18 +269,6 @@
                     </li>
 
 
-                    <li>
-
-                        <a href="./index.php?page=result"
-                           class="nav-link tree-item nav-result">
-
-                            <i class="fas fa-file-contract nav-icon"></i>
-                            <p>Reports</p>
-
-                        </a>
-
-                    </li>
-
 
                     </ul>
 
@@ -289,7 +277,7 @@
 
 
 
-                <!-- Reports and Activities now sit under Projects, above -->
+                <!-- Activities sit under Projects, above; reports are uploaded in each project's Post-Activity tab -->
 
 
 

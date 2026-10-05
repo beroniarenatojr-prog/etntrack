@@ -387,7 +387,8 @@
 
                 var choices = {};
                 $.each(list, function(i, p){
-                    choices[p.id] = p.ref + " · " + p.title + (p.term ? " (" + p.term + ")" : "") + (isAdmin ? " · " + p.coordinator : "");
+                    // Option labels are read as HTML by SweetAlert, so the text is escaped
+                    choices[p.id] = esc(p.ref + " · " + p.title + (p.term ? " (" + p.term + ")" : "") + (isAdmin ? " · " + p.coordinator : ""));
                 });
 
                 Swal.fire({

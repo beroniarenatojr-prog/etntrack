@@ -472,7 +472,7 @@ $(function(){
         var row = table.row($(this).closest('tr')).data();
 
         Swal.fire({
-            title: 'Delete "' + row.title + '"?',
+            titleText: 'Delete "' + row.title + '"?',
             text: 'Its documents are deleted too. Activities are kept, but they stop belonging to a project. This cannot be undone.',
             icon: 'warning',
             showCancelButton: true,

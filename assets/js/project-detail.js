@@ -979,6 +979,14 @@
                        (report.can_review && report.status !== 'Approved'
                            ? '<button type="button" class="pj-mini go" data-review-report="' + report.id + '"><i class="fas fa-gavel"></i> Review</button>'
                            : '') +
+                       (report.can_edit
+                           ? '<button type="button" class="pj-mini" data-edit-report="' + report.id + '"><i class="fas fa-pen"></i> ' +
+                             (report.status === 'Pending' ? 'Edit' : 'Edit &amp; Resubmit') + '</button>'
+                           : '') +
+                       (report.can_delete
+                           ? '<button type="button" class="pj-mini danger" data-delete-report="' + report.id + '" title="Delete this report">' +
+                             '<i class="fas fa-trash-alt"></i></button>'
+                           : '') +
                    '</div>' +
                '</div>';
     }
@@ -994,19 +1002,23 @@
         var html = '<div class="pj-step-head">' +
                        '<h3 class="pj-section-title"><i class="fas fa-file-contract"></i> Progress and Terminal Reports</h3>' +
                        '<p class="pj-section-sub">Progress Reports while the project runs, and the Terminal Report at its end. ' +
-                       'Approving the Terminal Report completes this stage.</p>' +
-                       (!isAdmin
-                           ? '<a class="pj-btn pj-btn-green pj-step-add" href="index.php?page=result&new=1&project=' + projectId + '">' +
-                             '<i class="fas fa-cloud-upload-alt"></i> Upload a Report</a>'
-                           : '') +
-                   '</div>';
+                       'Approving the Terminal Report completes this stage.' +
+                       (isAdmin ? ' The project\'s coordinator uploads them here; you review them.' : '') + '</p>' +
+                   '</div>' +
+                   '<div id="pj-unlinked"></div>';
 
         $.each([['Progress Report', 'fa-chart-line'], ['Terminal Report', 'fa-flag-checkered']], function(i, type){
 
             var list = data.reports.filter(function(r){ return r.type === type[0]; });
 
-            html += '<h4 class="pj-sub-title"><i class="fas ' + type[1] + '"></i> ' + esc(type[0]) +
-                    (list.length ? ' <span class="pj-count">' + list.length + '</span>' : '') + '</h4>';
+            html += '<div class="pj-sub-head">' +
+                        '<h4 class="pj-sub-title"><i class="fas ' + type[1] + '"></i> ' + esc(type[0]) +
+                        (list.length ? ' <span class="pj-count">' + list.length + '</span>' : '') + '</h4>' +
+                        (!isAdmin
+                            ? '<button type="button" class="pj-btn pj-btn-green pj-btn-sm" data-upload-report="' + esc(type[0]) + '">' +
+                              '<i class="fas fa-cloud-upload-alt"></i> Upload ' + esc(type[0]) + '</button>'
+                            : '') +
+                    '</div>';
 
             html += list.length
                 ? $.map(list, report_row).join('')
@@ -1043,7 +1055,179 @@
         });
 
         $('#pj-post').html(html);
+        load_unlinked();
     }
+
+    /* Reports are uploaded right here by the project's coordinator, changed
+       and resubmitted until they are approved, and reviewed by the Extension
+       Office (report_save / report_review / report_delete). */
+    function report_of(id){
+        return $.grep(data.reports, function(r){ return r.id === Number(id); })[0];
+    }
+
+    function open_report_form(type, report){
+
+        var form = $('#pj-report-form');
+
+        form[0].reset();
+        form.find('[name="id"]').val(report ? report.id : '');
+        form.find('[name="project_id"]').val(projectId);
+
+        $('#pjr-type').val(report ? report.type : type);
+
+        if(report){
+            $('#pjr-title').val(report.title);
+            $('#pjr-category').val(report.category || '');
+            $('#pjr-from').val(report.period_start || '');
+            $('#pjr-to').val(report.period_end || '');
+            $('#pjr-description').val(report.description || '');
+        }
+
+        $('#pjr-file-required').toggle(!report);
+        $('#pjr-file-hint').text('PDF or Word (.doc, .docx), up to 20 MB.' + (report ? ' Leave it empty to keep the current file.' : ''));
+        $('#pjr-submit span').text(report ? 'Save and Resubmit' : 'Submit Report');
+        report_form_title();
+
+        $('#pj-report-modal').modal('show');
+    }
+
+    function report_form_title(){
+        var editing = !!$('#pj-report-form [name="id"]').val();
+        $('#pj-report-modal .modal-title').text((editing ? 'Edit ' : 'Upload ') + $('#pjr-type').val());
+    }
+
+    $(document).on('change', '#pjr-type', report_form_title);
+
+    $(document).on('click', '[data-upload-report]', function(){
+        open_report_form($(this).data('upload-report'), null);
+    });
+
+    $(document).on('click', '[data-edit-report]', function(){
+        var report = report_of($(this).data('edit-report'));
+        if(report) open_report_form(null, report);
+    });
+
+    $(document).on('submit', '#pj-report-form', function(e){
+
+        e.preventDefault();
+
+        var form = this;
+        var editing = !!$(form).find('[name="id"]').val();
+        var file = $('#pjr-file')[0].files[0];
+        var from = $('#pjr-from').val();
+        var to = $('#pjr-to').val();
+
+        var problem =
+            !$.trim($('#pjr-title').val()) ? 'Please enter the report title.' :
+            (!editing && !file) ? 'Please attach the report file.' :
+            (file && !/\.(pdf|docx?)$/i.test(file.name)) ? 'Please attach the report as a PDF or Word document.' :
+            (file && file.size > 20 * 1024 * 1024) ? 'The file is larger than 20 MB.' :
+            (from && to && from > to) ? 'The reporting period ends before it starts.' : '';
+
+        if(problem){
+            Swal.fire({ icon: 'warning', title: 'Almost there', text: problem });
+            return;
+        }
+
+        var button = $('#pjr-submit').prop('disabled', true);
+
+        $.ajax({
+            url: 'ajax.php?action=report_save',
+            method: 'POST',
+            data: new FormData(form),
+            contentType: false,
+            processData: false,
+            dataType: 'json'
+        }).done(function(resp){
+            if(!resp.ok){
+                Swal.fire({ icon: 'warning', title: 'Not submitted', text: resp.error });
+                return;
+            }
+            $('#pj-report-modal').modal('hide');
+            alert_toast(editing ? 'Resubmitted for review.' : 'Report submitted for review.', 'success');
+            load();
+        }).fail(function(xhr){
+            Swal.fire({ icon: 'error', title: 'Not submitted', text: (xhr.responseJSON && xhr.responseJSON.error) || 'Please try again.' });
+        }).always(function(){
+            button.prop('disabled', false);
+        });
+    });
+
+    $(document).on('click', '[data-delete-report]', function(){
+
+        var report = report_of($(this).data('delete-report'));
+        if(!report) return;
+
+        Swal.fire({
+            titleText: 'Delete "' + report.title + '"?',
+            text: report.ref + ' · ' + report.type + '. The file is removed too. This cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d'
+        }).then(function(result){
+            if(!result.isConfirmed) return;
+            $.post('ajax.php?action=report_delete', { id: report.id }, null, 'json')
+                .done(function(resp){
+                    if(resp.ok){ alert_toast('Report deleted.', 'success'); load(); }
+                    else Swal.fire({ icon: 'warning', title: 'Not deleted', text: resp.error });
+                })
+                .fail(function(xhr){
+                    Swal.fire({ icon: 'error', title: 'Not deleted', text: (xhr.responseJSON && xhr.responseJSON.error) || 'Please try again.' });
+                });
+        });
+    });
+
+    /* Reports uploaded before reports belonged to projects have none. Whoever
+       may link one (the admin, or the coordinator who uploaded it) can link
+       it to this project here; nothing is linked by guessing. */
+    var unlinked = [];
+
+    function load_unlinked(){
+        $.getJSON('ajax.php?action=report_list', { project: 'none' }).done(function(resp){
+            unlinked = resp.ok ? resp.data.filter(function(r){ return r.can_assign; }) : [];
+            $('#pj-unlinked').html(unlinked.length
+                ? '<div class="pj-unlinked"><i class="fas fa-unlink"></i>' +
+                  '<span>' + plural(unlinked.length, 'report') + (unlinked.length === 1 ? ' is' : ' are') +
+                  ' not linked to any project yet (uploaded before reports belonged to projects).</span>' +
+                  '<button type="button" class="pj-mini go" id="pj-link-report"><i class="fas fa-link"></i> Link one to this project</button>' +
+                  '</div>'
+                : '');
+        });
+    }
+
+    $(document).on('click', '#pj-link-report', function(){
+
+        var choices = {};
+        $.each(unlinked, function(i, r){
+            // Option labels are read as HTML by SweetAlert, so the text is escaped
+            choices[r.id] = esc(r.ref + ' · ' + r.type + ' · ' + r.title + ' · ' + r.coordinator + ' (' + r.uploaded_display + ')');
+        });
+
+        Swal.fire({
+            title: 'Link a report to this project',
+            text: 'Only link a report that really belongs to "' + data.project.title + '".',
+            input: 'select',
+            inputOptions: choices,
+            inputPlaceholder: 'Choose the report',
+            showCancelButton: true,
+            confirmButtonText: 'Link',
+            confirmButtonColor: '#1d5b42',
+            cancelButtonColor: '#6c757d',
+            inputValidator: function(value){ if(!value) return 'Please choose a report.'; }
+        }).then(function(result){
+            if(!result.isConfirmed) return;
+            $.post('ajax.php?action=report_assign', { id: result.value, project_id: projectId }, null, 'json')
+                .done(function(resp){
+                    if(resp.ok){ alert_toast('Report linked to this project.', 'success'); load(); }
+                    else Swal.fire({ icon: 'warning', title: 'Not linked', text: resp.error });
+                })
+                .fail(function(xhr){
+                    Swal.fire({ icon: 'error', title: 'Not linked', text: (xhr.responseJSON && xhr.responseJSON.error) || 'Please try again.' });
+                });
+        });
+    });
 
     // The Extension Office's decision on a report: the same choices as for documents
     $(document).on('click', '[data-review-report]', function(){

@@ -1,5 +1,10 @@
 <?php
 
+// Every page works in Philippine time, including the ones that do not load
+// header.php (the public evaluation form, file downloads, the QR page), so
+// "today" is the same day everywhere: questionnaire periods, activity days.
+date_default_timezone_set('Asia/Manila');
+
 // On XAMPP this connects to the local database. Anywhere else it reads the
 // live login from db_config.php, which is kept out of git so the password is
 // never published to the public GitHub repository.

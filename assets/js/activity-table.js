@@ -488,7 +488,7 @@ var ActivityTable = (function($){
         // A single rejection can say why; the coordinator reads it in the activity
         function reject_one(row){
             Swal.fire({
-                title: "Reject \"" + row.title + "\"?",
+                titleText: "Reject \"" + row.title + "\"?",
                 text: "Say why, so " + row.implementer + " knows. The activity is kept, marked Rejected.",
                 input: "textarea",
                 inputPlaceholder: "Reason (optional)",
@@ -512,10 +512,11 @@ var ActivityTable = (function($){
                 }
                 var choices = {};
                 $.each(projects, function(i, p){
-                    choices[p.id] = p.ref + " · " + p.title + (p.term ? " (" + p.term + ")" : "") + (row.can_review ? " · " + p.coordinator : "");
+                    // Option labels are read as HTML by SweetAlert, so the text is escaped
+                    choices[p.id] = esc(p.ref + " · " + p.title + (p.term ? " (" + p.term + ")" : "") + (row.can_review ? " · " + p.coordinator : ""));
                 });
                 Swal.fire({
-                    title: "Which project is \"" + row.title + "\" part of?",
+                    titleText: "Which project is \"" + row.title + "\" part of?",
                     input: "select",
                     inputOptions: choices,
                     inputValue: row.project_id ? String(row.project_id) : "",

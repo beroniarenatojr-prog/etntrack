@@ -305,7 +305,7 @@ class="nav-link nav-faculty_list nav-new_faculty nav-edit_faculty">
 
 
 
-<!-- PROJECTS (with the activities and reports that belong to them) -->
+<!-- PROJECTS (with the activities that belong to them; reports are uploaded inside each project) -->
 <li class="nav-item has-treeview">
 
     <a href="#" class="nav-link">
@@ -349,18 +349,6 @@ class="nav-link nav-faculty_list nav-new_faculty nav-edit_faculty">
     </li>
 
 
-    <li>
-
-        <a href="./index.php?page=report"
-           class="nav-link tree-item nav-report">
-
-            <i class="fas fa-file-contract nav-icon"></i>
-            <p>Reports</p>
-
-        </a>
-
-    </li>
-
 
     </ul>
 
@@ -372,7 +360,7 @@ class="nav-link nav-faculty_list nav-new_faculty nav-edit_faculty">
 
 
 
-<!-- Reports now sit under Projects, above -->
+<!-- Reports are uploaded in each project's Post-Activity tab -->
 
 
 <li class="nav-item">

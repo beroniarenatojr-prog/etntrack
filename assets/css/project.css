@@ -1158,3 +1158,34 @@ table.pj-table tbody td {
 @media (hover: none) {
     .pj-thumb-remove { opacity: 1; }
 }
+
+/* Post-Activity: each report type with its own Upload button */
+.pj-sub-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 18px 0 10px;
+}
+
+.pj-sub-head .pj-sub-title { margin: 0; }
+
+.pj-btn-sm { padding: 7px 14px; font-size: 13px; border-radius: 9px; }
+
+/* Reports from before reports belonged to projects, waiting to be linked */
+.pj-unlinked {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-size: 13.5px;
+}
+
+.pj-unlinked > span { flex: 1 1 260px; }

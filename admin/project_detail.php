@@ -175,4 +175,90 @@ if($project_id <= 0){
     </div>
 </div>
 
+
+<!-- PROGRESS / TERMINAL REPORT FORM (uploaded right here, in the project) -->
+
+<div class="modal fade pj-modal" id="pj-report-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Report</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <form id="pj-report-form" class="pj-form" novalidate>
+
+                <div class="modal-body">
+
+                    <input type="hidden" name="id" value="">
+                    <input type="hidden" name="project_id" value="">
+
+                    <div class="row">
+
+                        <div class="col-md-6 form-group">
+                            <label for="pjr-type">Report Type <span class="text-danger">*</span></label>
+                            <select class="form-control" id="pjr-type" name="report_type">
+                                <option value="Progress Report">Progress Report</option>
+                                <option value="Terminal Report">Terminal Report</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 form-group">
+                            <label for="pjr-category">Category</label>
+                            <select class="form-control" id="pjr-category" name="category">
+                                <option value="">Not set</option>
+                                <option>Research</option>
+                                <option>Extension</option>
+                                <option>Training</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 form-group">
+                            <label for="pjr-title">Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="pjr-title" name="title" maxlength="255"
+                                   placeholder="e.g. First Quarter Progress Report">
+                        </div>
+
+                        <div class="col-md-6 form-group">
+                            <label for="pjr-from">Reporting Period: From</label>
+                            <input type="date" class="form-control" id="pjr-from" name="period_start">
+                        </div>
+
+                        <div class="col-md-6 form-group">
+                            <label for="pjr-to">To</label>
+                            <input type="date" class="form-control" id="pjr-to" name="period_end">
+                        </div>
+
+                        <div class="col-12 form-group">
+                            <label for="pjr-description">Description</label>
+                            <textarea class="form-control" id="pjr-description" name="description"
+                                      placeholder="What this report covers."></textarea>
+                        </div>
+
+                        <div class="col-12 form-group mb-0">
+                            <label for="pjr-file">Report File <span class="text-danger" id="pjr-file-required">*</span></label>
+                            <input type="file" class="form-control-file" id="pjr-file" name="report" accept=".pdf,.doc,.docx">
+                            <small class="pj-muted" id="pjr-file-hint">PDF or Word (.doc, .docx), up to 20 MB.</small>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="pj-btn pj-btn-light" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="pj-btn pj-btn-green" id="pjr-submit">
+                        <i class="fas fa-cloud-upload-alt"></i> <span>Submit Report</span>
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
 <script src="assets/js/project-detail.js?v=<?php echo @filemtime("assets/js/project-detail.js") ?: 1; ?>"></script>

@@ -515,11 +515,13 @@ trait ProjectActions {
 			'state' => $people ? 'done' : 'waiting'
 		);
 
-		// Conducting and after: taken from the activities themselves
+		// Conducting and after: taken from the activities themselves. "Today" is the
+		// application's date (Asia/Manila), not the database server's, which may differ.
+		$today = date('Y-m-d');
 		$activities = $this->db->query("
 			SELECT COUNT(*) AS total,
 				SUM(status = 'approved') AS approved,
-				SUM(status = 'approved' AND activity_date < CURDATE()) AS past
+				SUM(status = 'approved' AND activity_date < '$today') AS past
 			FROM activities WHERE project_id = $id
 		")->fetch_assoc();
 
@@ -1141,11 +1143,13 @@ trait ProjectActions {
 			if($stage['state'] !== 'waiting') $started++;
 		}
 
+		// The application's date (Asia/Manila), not the database server's
+		$today = date('Y-m-d');
 		$activities = $this->db->query("
 			SELECT COUNT(*) AS total,
 				SUM(status = 'approved') AS approved,
-				SUM(status = 'approved' AND activity_date < CURDATE()) AS past,
-				SUM(status = 'approved' AND activity_date = CURDATE()) AS today
+				SUM(status = 'approved' AND activity_date < '$today') AS past,
+				SUM(status = 'approved' AND activity_date = '$today') AS today
 			FROM activities WHERE project_id = $project_id
 		")->fetch_assoc();
 
@@ -1195,7 +1199,7 @@ trait ProjectActions {
 		$completed = '';
 		if($this->links_ready()){
 			$completed = in_array($status, array('completed', 'impact_monitoring', 'closed'))
-				? ", completed_at = COALESCE(completed_at, CURDATE())"
+				? ", completed_at = COALESCE(completed_at, '".date('Y-m-d')."')"
 				: ", completed_at = NULL";
 		}
 
